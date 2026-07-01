@@ -50,8 +50,11 @@ public class JdbcClient {
 
   protected StatementHandler statementHandler;
 
-  // Controls whether the sink creates a new table or not. If true, the sink writes to a table, provided by the user.
+  // Controls whether the sink creates a new table or not. If true, the sink writes to an existing table.
   protected boolean appendToExisting = false;
+
+  // Number of events to buffer before one batch insert. Default 1 = write each event immediately.
+  protected int batchSize = 1;
 
   /**
    * A wrapper class for all supported SQL data types (INT, BIGINT, FLOAT, DOUBLE, VARCHAR(255)).
@@ -182,7 +185,7 @@ public class JdbcClient {
       if (tableAlreadyExists) {
         validateTable();
       } else if(this.appendToExisting) {
-        // The user provided a table, so we do not create a new one.
+        // The user asked to write only to an existing table, so we do not create one.
         closeAll();
         throw new SpRuntimeException("Table '" + this.tableDescription.getName()
                 + "' does not exist, but the option 'Write to existing table only' is enabled. "
@@ -204,7 +207,6 @@ public class JdbcClient {
    * @throws SpRuntimeException When there was an error in the saving process
    */
   protected void save(final Event event) throws SpRuntimeException {
-    //TODO: Add batch support (https://stackoverflow.com/questions/3784197/efficient-way-to-do-batch-inserts-with-jdbc)
     if (event == null) {
       throw new SpRuntimeException("event is null");
     }
@@ -220,14 +222,25 @@ public class JdbcClient {
     }
     try {
       checkConnected();
-      this.statementHandler.executePreparedStatement(
-          this.dbDescription, this.tableDescription,
-          connection, eventMap);
+      if (this.batchSize > 1) {
+        // Collects events and send them together in one batch insert (one round trip to the database)
+        this.statementHandler.addToBatch(this.dbDescription, this.tableDescription, connection, eventMap);
+        if (this.statementHandler.getPendingBatchCount() >= this.batchSize) {
+          this.statementHandler.executeBatch();
+        }
+      } else {
+        // Sends one statement per event
+        this.statementHandler.executePreparedStatement(
+                this.dbDescription, this.tableDescription,
+                connection, eventMap);
+      }
     } catch (SQLException e) {
       boolean tableMissing = e.getSQLState() != null && e.getSQLState().startsWith("42");
-      if (tableMissing && !this.appendToExisting) {
+      if (tableMissing && !this.appendToExisting && this.batchSize <= 1) {
         // If the table does not exists (because it got deleted or something, will cause the error
         // code "42") we will try to create a new one. Otherwise we do not handle the exception.
+        // Recreate the table only if creation is allowed. In append mode the user provides a table,
+        // so we do not recreate it.
         LOG.warn("Table '" + this.tableDescription.getName() + "' was unexpectedly not found and gets recreated.");
         this.tableDescription.setTableMissing();
         createTable();
@@ -273,6 +286,15 @@ public class JdbcClient {
    */
   protected void closeAll() {
     boolean error = false;
+    try {
+      // Write out any events still buffered in the batch before we close the connection
+      if (this.statementHandler != null) {
+        this.statementHandler.executeBatch();
+      }
+    } catch (SQLException e) {
+      error = true;
+      LOG.warn("Exception when flushing the batch: " + e.getMessage());
+    }
     try {
       if (this.statementHandler.statement != null) {
         this.statementHandler.statement.close();

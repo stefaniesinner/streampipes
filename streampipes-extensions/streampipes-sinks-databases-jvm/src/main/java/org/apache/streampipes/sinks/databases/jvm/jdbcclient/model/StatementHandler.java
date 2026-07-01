@@ -33,6 +33,9 @@ public class StatementHandler {
 
   public Statement statement;
   public PreparedStatement preparedStatement;
+
+  private int pendingBatchCount = 0;
+
   /**
    * The parameters in the prepared statement {@code ps} together with their index and data type
    */
@@ -136,6 +139,7 @@ public class StatementHandler {
       } else {
         if (!eventParameterMap.containsKey(newKey)) {
           //TODO: start the for loop all over again
+          executeBatch();
           generatePreparedStatement(dbDescription, tableDescription, connection, event);
         }
         ParameterInformation p = eventParameterMap.get(newKey);
@@ -163,6 +167,28 @@ public class StatementHandler {
     }
     fillPreparedStatement(dbDescription, tableDescription, connection, event, "");
     this.preparedStatement.executeUpdate();
+  }
+
+  public void addToBatch(DbDescription dbDescription, TableDescription tableDescription,
+                         Connection connection, final Map<String, Object> event)
+          throws SQLException, SpRuntimeException {
+    if (this.getPreparedStatement() != null) {
+      this.preparedStatement.clearParameters();
+    }
+    fillPreparedStatement(dbDescription, tableDescription, connection, event, "");
+    this.preparedStatement.addBatch();
+    this.pendingBatchCount++;
+  }
+
+  public void executeBatch() throws SQLException {
+    if (this.preparedStatement != null && this.pendingBatchCount > 0) {
+      this.preparedStatement.executeBatch();
+      this.pendingBatchCount = 0;
+    }
+  }
+
+  public int getPendingBatchCount() {
+    return this.pendingBatchCount;
   }
 
   public PreparedStatement getPreparedStatement() {
