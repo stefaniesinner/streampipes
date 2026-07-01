@@ -50,6 +50,9 @@ public class JdbcClient {
 
   protected StatementHandler statementHandler;
 
+  // Controls whether the sink creates a new table or not. If true, the sink writes to a table, provided by the user.
+  protected boolean appendToExisting = false;
+
   /**
    * A wrapper class for all supported SQL data types (INT, BIGINT, FLOAT, DOUBLE, VARCHAR(255)).
    * If no matching type is found, it is interpreted as a String (VARCHAR(255))
@@ -174,13 +177,20 @@ public class JdbcClient {
           this.dbDescription.getPassword());
       this.statementHandler.setStatement(connection.createStatement());
       ResultSet rs = connection.getMetaData().getTables(null, null, this.tableDescription.getName(), null);
-      if (rs.next()) {
+      boolean tableAlreadyExists = rs.next();
+      rs.close();
+      if (tableAlreadyExists) {
         validateTable();
+      } else if(this.appendToExisting) {
+        // The user provided a table, so we do not create a new one.
+        closeAll();
+        throw new SpRuntimeException("Table '" + this.tableDescription.getName()
+                + "' does not exist, but the option 'Write to existing table only' is enabled. "
+                + "Create the table first or disable this option.");
       } else {
         createTable();
       }
       this.tableDescription.setTableExists();
-      rs.close();
     } catch (SQLException e) {
       closeAll();
       throw new SpRuntimeException(e.getMessage());
@@ -195,12 +205,15 @@ public class JdbcClient {
    */
   protected void save(final Event event) throws SpRuntimeException {
     //TODO: Add batch support (https://stackoverflow.com/questions/3784197/efficient-way-to-do-batch-inserts-with-jdbc)
-    checkConnected();
-    Map<String, Object> eventMap = event.getRaw();
     if (event == null) {
       throw new SpRuntimeException("event is null");
     }
+    checkConnected();
+    Map<String, Object> eventMap = event.getRaw();
     if (!this.tableDescription.tableExists()) {
+      if (this.appendToExisting) {
+        throw new SpRuntimeException("Table '" + this.tableDescription.getName() + "' is not available.");
+      }
       // Creates the table
       createTable();
       this.tableDescription.setTableExists();
@@ -211,7 +224,8 @@ public class JdbcClient {
           this.dbDescription, this.tableDescription,
           connection, eventMap);
     } catch (SQLException e) {
-      if (e.getSQLState().substring(0, 2).equals("42")) {
+      boolean tableMissing = e.getSQLState() != null && e.getSQLState().startsWith("42");
+      if (tableMissing && !this.appendToExisting) {
         // If the table does not exists (because it got deleted or something, will cause the error
         // code "42") we will try to create a new one. Otherwise we do not handle the exception.
         LOG.warn("Table '" + this.tableDescription.getName() + "' was unexpectedly not found and gets recreated.");
