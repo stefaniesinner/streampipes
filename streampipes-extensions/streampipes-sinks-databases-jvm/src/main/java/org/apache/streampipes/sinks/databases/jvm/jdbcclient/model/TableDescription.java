@@ -28,6 +28,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -116,22 +117,37 @@ public class TableDescription {
   }
 
   public void validateTable() throws SpRuntimeException {
+    List<String> missing = new ArrayList<>();
     for (EventProperty property : this.eventSchema.getEventProperties()) {
       DbDataTypes existingType = this.getDataTypesHashMap().get(property.getRuntimeName());
       if (existingType != null) {
-        if (property instanceof EventPropertyPrimitive) {
+        missing.add("'" + property.getRuntimeName() + "'");
+      } else if (property instanceof EventPropertyPrimitive) {
           String expected = ((EventPropertyPrimitive) property).getRuntimeType();
           String actual = DbDataTypeFactory.getDataType(existingType).toString();
           if (!expected.equals(actual)) {
             throw new SpRuntimeException("Column '" + property.getRuntimeName()
                 + "' in table '" + this.getName() + "' has type mismatch: expected "
                 + expected + " but got " + actual);
-          }
         }
       } else {
         throw new SpRuntimeException("Column '" + property.getRuntimeName()
             + "' is missing in table '" + this.getName() + "'");
       }
+    }
+    if (!missing.isEmpty()) {
+      String columns;
+      if (missing.size() == 1) {
+        columns = missing.get(0);
+      } else if (missing.size() == 2) {
+        columns = missing.get(0) + " and " + missing.get(1);
+      } else {
+        columns = String.join(", ", missing.subList(0, missing.size() - 1))
+                + ", and " + missing.get(missing.size() - 1);
+      }
+      String noun = missing.size() == 1 ? "Column" : "Columns";
+      String verb = missing.size() == 1 ? "is" : "are";
+      throw new SpRuntimeException(noun + " " + columns + " " + verb + " missing in table '" + this.getName() + "'");
     }
   }
 
