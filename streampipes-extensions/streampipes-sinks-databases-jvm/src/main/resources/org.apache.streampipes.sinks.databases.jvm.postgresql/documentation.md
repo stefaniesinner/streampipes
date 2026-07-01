@@ -62,6 +62,18 @@ The username for the PostgreSQL Server.
 
 The password for the PostgreSQL Server.
 
+### Write to existing table
+
+If enabled, the sink writes to a table that already exists. 
+It reads the existing schema from `information_schema.columns` and validates your stream against it. 
+If a column is missing or a type does not match, the pipeline fails at start with an error message.
+
+### Batch Size
+
+Number of events buffered before they are written in a single batch insert. 
+A higher value is faster for high-throughput streams because it needs fewer round trips to the database. 
+Set it to 1 to write each event immediately. Buffered events are flushed when the pipeline stops.
+
 ## Output
 
 (not applicable for data sinks)
