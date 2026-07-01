@@ -76,7 +76,7 @@ public class TableDescription {
       }
     } catch (SQLException e) {
       throw new SpRuntimeException("SqlException: " + e.getMessage() + ", Error code: " + e.getErrorCode()
-          + ", SqlState: " + e.getSQLState());
+              + ", SqlState: " + e.getSQLState());
     } finally {
       try {
         resultSet.close();
@@ -106,8 +106,8 @@ public class TableDescription {
     StringBuilder statement = new StringBuilder(createStatement);
     statement.append(this.getName()).append(" ( ");
     statement.append(
-            SQLStatementUtils.extractEventProperties(this.getEventSchema().getEventProperties(), "", dbDescription))
-        .append(" );");
+                    SQLStatementUtils.extractEventProperties(this.getEventSchema().getEventProperties(), "", dbDescription))
+            .append(" );");
 
     try {
       statementHandler.statement.executeUpdate(statement.toString());
@@ -118,23 +118,26 @@ public class TableDescription {
 
   public void validateTable() throws SpRuntimeException {
     List<String> missing = new ArrayList<>();
+    List<String> typeMismatches = new ArrayList<>();
+
     for (EventProperty property : this.eventSchema.getEventProperties()) {
-      DbDataTypes existingType = this.getDataTypesHashMap().get(property.getRuntimeName());
-      if (existingType != null) {
-        missing.add("'" + property.getRuntimeName() + "'");
+      String columnName = property.getRuntimeName();
+      DbDataTypes existingType = this.getDataTypesHashMap().get(columnName);
+
+      if (existingType == null) {
+        // Spalte fehlt in der Tabelle
+        missing.add("'" + columnName + "'");
       } else if (property instanceof EventPropertyPrimitive) {
-          String expected = ((EventPropertyPrimitive) property).getRuntimeType();
-          String actual = DbDataTypeFactory.getDataType(existingType).toString();
-          if (!expected.equals(actual)) {
-            throw new SpRuntimeException("Column '" + property.getRuntimeName()
-                + "' in table '" + this.getName() + "' has type mismatch: expected "
-                + expected + " but got " + actual);
+        // Spalte existiert -> Typ prüfen (XSD gegen XSD, wie in deinem Original)
+        String expected = ((EventPropertyPrimitive) property).getRuntimeType();
+        String actual = DbDataTypeFactory.getDataType(existingType).toString();
+        if (!expected.equals(actual)) {
+          typeMismatches.add("'" + columnName + "' (schema type " + expected
+                  + " does not match column type " + existingType + ")");
         }
-      } else {
-        throw new SpRuntimeException("Column '" + property.getRuntimeName()
-            + "' is missing in table '" + this.getName() + "'");
       }
     }
+
     if (!missing.isEmpty()) {
       String columns;
       if (missing.size() == 1) {
@@ -147,7 +150,13 @@ public class TableDescription {
       }
       String noun = missing.size() == 1 ? "Column" : "Columns";
       String verb = missing.size() == 1 ? "is" : "are";
-      throw new SpRuntimeException(noun + " " + columns + " " + verb + " missing in table '" + this.getName() + "'");
+      throw new SpRuntimeException(noun + " " + columns + " " + verb
+              + " missing in table '" + this.getName() + "'");
+    }
+
+    if (!typeMismatches.isEmpty()) {
+      throw new SpRuntimeException("Type mismatch in table '" + this.getName()
+              + "' for column(s) " + String.join(", ", typeMismatches));
     }
   }
 

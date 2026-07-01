@@ -184,7 +184,7 @@ public class JdbcClient {
       rs.close();
       if (tableAlreadyExists) {
         validateTable();
-      } else if(this.appendToExisting) {
+      } else if (this.appendToExisting) {
         // The user asked to write only to an existing table, so we do not create one.
         closeAll();
         throw new SpRuntimeException("Table '" + this.tableDescription.getName()
