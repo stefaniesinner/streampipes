@@ -56,10 +56,11 @@ public class PostgreSqlSinkMigrationV1 implements IDataSinkMigrator {
     public MigrationResult<DataSinkInvocation> migrate(DataSinkInvocation element,
                                                        IDataSinkParameterExtractor extractor) throws RuntimeException {
 
+        // TODO: Rewrite label and description to make it more understandable for users.
         var appendLabel = Labels.from(
                 APPEND_TO_EXISTING_KEY,
-                "Write to existing table only",
-                "If enabled, the sink only writes to a table that already exists and never creates one.");
+                "Write to existing table",
+                "If enabled, the sink writes to a provided table");
         var appendToggle = new SlideToggleStaticProperty(
                 appendLabel.getInternalId(),
                 appendLabel.getLabel(),
@@ -71,7 +72,7 @@ public class PostgreSqlSinkMigrationV1 implements IDataSinkMigrator {
         var batchLabel = Labels.from(
                 BATCH_SIZE_KEY,
                 "Batch Size",
-                "Number of events buffered before a batch insert is sent. Set to 1 to write each event immediately.");
+                "Number of events buffered before a batch insert is sent");
         var batchSize = new FreeTextStaticProperty(
                 batchLabel.getInternalId(),
                 batchLabel.getLabel(),
