@@ -27,6 +27,7 @@ public class KafkaBaseConfig {
 
   private String kafkaHost;
   private Integer kafkaPort;
+  private String bootstrapServers;
   private String topic;
   private List<KafkaConfigAppender> configAppenders;
 
@@ -48,6 +49,17 @@ public class KafkaBaseConfig {
 
   public void setKafkaPort(Integer kafkaPort) {
     this.kafkaPort = kafkaPort;
+  }
+
+  public String getBootstrapServers() {
+    if (bootstrapServers != null && !bootstrapServers.isBlank()) {
+      return bootstrapServers;
+    }
+    return kafkaHost + ":" + kafkaPort;
+  }
+
+  public void setBootstrapServers(String bootstrapServers) {
+    this.bootstrapServers = bootstrapServers;
   }
 
   public String getTopic() {

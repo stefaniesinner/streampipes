@@ -36,11 +36,10 @@ describe('Test Kafka Integration', () => {
             'kafka_publisher',
         )
             .addInput('radio', 'access-mode-plaintext', '')
-            .addInput('input', 'host', host)
             .addInput(
                 'input',
-                'port',
-                '{backspace}{backspace}{backspace}{backspace}' + port,
+                'bootstrap-servers',
+                '{selectall}{backspace}' + host + ':' + port,
             )
             .addInput('input', 'topic', topicName)
             .build();

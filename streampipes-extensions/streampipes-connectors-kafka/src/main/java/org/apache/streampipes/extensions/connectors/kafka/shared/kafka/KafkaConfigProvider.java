@@ -35,6 +35,8 @@ public class KafkaConfigProvider {
   public static final String TOPIC_KEY = "topic";
   public static final String HOST_KEY = "host";
   public static final String PORT_KEY = "port";
+  public static final String BOOTSTRAP_SERVERS_KEY = "bootstrap-servers";
+  public static final String DEFAULT_BOOTSTRAP_SERVERS = "localhost:9092";
 
   public static final String ACCESS_MODE = "access-mode";
   public static final String UNAUTHENTICATED_PLAIN = "unauthenticated-plain";

@@ -28,6 +28,7 @@
 The Kafka Publisher sink enables StreamPipes to publish events to Apache Kafka topics. It provides:
 * Real-time event publishing to Kafka topics
 * Support for various security configurations
+* Support for multiple bootstrap servers to connect to a Kafka cluster
 * Automatic topic creation if not exists
 * Configurable message handling
 * JSON message serialization
@@ -44,6 +45,10 @@ This sink accepts any incoming event type and serializes it to JSON format befor
 ### Broker Settings
 * **Broker Hostname**: The hostname or IP address of the Kafka broker (e.g., test.server.com). Do not include the protocol.
 * **Broker Port**: The port number of the Kafka broker (default: 9092)
+* **Kafka Bootstrap Servers**: A comma-separated list of brokers used to bootstrap the connection to the Kafka 
+  cluster, given in the standard Kafka `bootstrap.servers` format `host:port` (e.g., `broker1:9092,broker2:9092,broker3:9092`).
+  Do not include the protocol. Listing more than one broker is recommended in a clustered setup: the client only
+  needs one of the listed brokers to be reachable and discovers the remaining cluster members from there.
 
 ### Security Settings
 * **Security Protocol**: Choose the security protocol for broker communication:

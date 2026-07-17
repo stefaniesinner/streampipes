@@ -34,6 +34,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.streampipes.model.grounding.SimpleTopicDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,9 +47,6 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 public class SpKafkaProducer implements EventProducer, Serializable {
-
-
-  private static final String COLON = ":";
 
   private String brokerUrl;
   private String topic;
@@ -64,15 +62,16 @@ public class SpKafkaProducer implements EventProducer, Serializable {
   }
 
   // TODO backwards compatibility, remove later
-  public SpKafkaProducer(String url,
+  public SpKafkaProducer(String bootstrapServers,
                          String topic,
                          List<KafkaConfigAppender> appenders) {
-    String[] urlParts = url.split(COLON);
-    KafkaTransportProtocol protocol = new KafkaTransportProtocol(urlParts[0],
-        Integer.parseInt(urlParts[1]), topic);
-    this.brokerUrl = url;
+    var protocol = new KafkaTransportProtocol();
+    protocol.setTopicDefinition(new SimpleTopicDefinition(topic));
+
+    this.brokerUrl = bootstrapServers;
     this.topic = topic;
-    this.producer = new KafkaProducer<>(makeProperties(protocol, appenders));
+    this.producer = new KafkaProducer<>(
+        new ProducerConfigFactory(protocol, bootstrapServers).buildProperties(appenders));
     this.connected = true;
   }
 
