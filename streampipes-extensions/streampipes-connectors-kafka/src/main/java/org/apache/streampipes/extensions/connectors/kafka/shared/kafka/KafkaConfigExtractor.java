@@ -43,9 +43,7 @@ import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.Ka
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.BOOTSTRAP_SERVERS_KEY;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.CONSUMER_GROUP;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.GROUP_ID_INPUT;
-import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.HOST_KEY;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.PASSWORD_KEY;
-import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.PORT_KEY;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.RANDOM_GROUP_ID;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.SECURITY_MECHANISM;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.TOPIC_KEY;
@@ -54,11 +52,9 @@ import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.Ka
 public class KafkaConfigExtractor {
 
   public KafkaBaseConfig extractAdapterConfig(IStaticPropertyExtractor extractor,
-                                                 boolean containsTopic) {
+                                              boolean containsTopic) {
 
     var config = extractCommonConfigs(extractor, new KafkaBaseConfig());
-    config.setKafkaHost(extractor.singleValueParameter(HOST_KEY, String.class));
-    config.setKafkaPort(extractor.singleValueParameter(PORT_KEY, Integer.class));
 
     var topic = "";
     if (containsTopic) {
@@ -89,9 +85,6 @@ public class KafkaConfigExtractor {
 
   public KafkaBaseConfig extractSinkConfig(IParameterExtractor extractor) {
     var config = extractCommonConfigs(extractor, new KafkaBaseConfig());
-    config.setBootstrapServers(
-        KafkaBootstrapServersParser.parseAndValidate(
-            extractor.singleValueParameter(BOOTSTRAP_SERVERS_KEY, String.class)));
     config.setTopic(extractor.singleValueParameter(TOPIC_KEY, String.class));
 
     return config;
@@ -101,6 +94,8 @@ public class KafkaConfigExtractor {
                                                              T config) {
     var configAppenders = new ArrayList<KafkaConfigAppender>();
     var env = Environments.getEnvironment();
+    config.setBootstrapServers(KafkaBootstrapServersParser.parseAndValidate(extractor.singleValueParameter(
+        BOOTSTRAP_SERVERS_KEY, String.class)));
 
     var authentication = extractor.selectedAlternativeInternalId(ACCESS_MODE);
     var securityProtocol = getSecurityProtocol(authentication);

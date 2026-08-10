@@ -56,10 +56,16 @@ class KafkaBootstrapServersParserTest {
   }
 
   @Test
-  void ipAddressesAreAccepted() {
+  void hostnamesAndIpAddressesAreAccepted() {
     assertEquals(
-        "127.0.0.1:9092,[::1]:9093,localhost:9094",
-        KafkaBootstrapServersParser.parseAndValidate("127.0.0.1:9092,[::1]:9093,localhost:9094"));
+        "127.0.0.1:9092,[::1]:9093,BROKER-1.example.com:9094",
+        KafkaBootstrapServersParser.parseAndValidate("127.0.0.1:9092,[::1]:9093,BROKER-1.example.com:9094"));
+  }
+
+  @Test
+  void portBoundariesAreAccepted() {
+    assertEquals("broker1:1,broker2:65535",
+        KafkaBootstrapServersParser.parseAndValidate("broker1:1,broker2:65535"));
   }
 
   @ParameterizedTest
@@ -71,6 +77,11 @@ class KafkaBootstrapServersParserTest {
       "broker1:65536",
       "broker1:port",
       "kafka://broker1:9092",
+      "[broker1:9092",
+      "broker1]:9092",
+      "broker:1:9092",
+      "broker1: 9092",
+      "broker1:9092:extra",
       ","
   })
   void invalidBootstrapServersAreRejected(String bootstrapServers) {
@@ -81,5 +92,15 @@ class KafkaBootstrapServersParserTest {
   void emptyValueIsRejected() {
     assertThrows(SpRuntimeException.class, () -> KafkaBootstrapServersParser.parseAndValidate("  "));
     assertThrows(SpRuntimeException.class, () -> KafkaBootstrapServersParser.parseAndValidate(null));
+  }
+
+  /**
+   * Guards against the regression reported in the issue: the value used to be split on every
+   * colon, which made the port parsing fail for a comma-separated list.
+   */
+  @Test
+  void listIsNotSplitOnColon() {
+    assertEquals("broker1:9092,broker2:9092",
+        KafkaBootstrapServersParser.parseAndValidate("broker1:9092,broker2:9092"));
   }
 }

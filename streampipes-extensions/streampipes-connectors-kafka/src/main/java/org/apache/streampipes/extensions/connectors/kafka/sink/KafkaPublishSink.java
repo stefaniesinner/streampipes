@@ -72,8 +72,7 @@ public class KafkaPublishSink implements IStreamPipesDataSink {
 
             .requiredTextParameter(Labels.withId(KafkaConfigProvider.TOPIC_KEY), false, false)
             .requiredTextParameter(
-                Labels.withId(KafkaConfigProvider.BOOTSTRAP_SERVERS_KEY),
-                KafkaConfigProvider.DEFAULT_BOOTSTRAP_SERVERS)
+                KafkaConfigProvider.getBootstrapServersLabel(), KafkaConfigProvider.DEFAULT_BOOTSTRAP_SERVERS)
 
             .requiredAlternatives(Labels.withId(KafkaConfigProvider.ACCESS_MODE),
                 KafkaConfigProvider.getAlternativeUnauthenticatedPlain(),

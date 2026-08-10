@@ -65,13 +65,12 @@ public class SpKafkaProducer implements EventProducer, Serializable {
   public SpKafkaProducer(String bootstrapServers,
                          String topic,
                          List<KafkaConfigAppender> appenders) {
-    var protocol = new KafkaTransportProtocol();
+    KafkaTransportProtocol protocol = new KafkaTransportProtocol();
+    protocol.setBootstrapServers(bootstrapServers);
     protocol.setTopicDefinition(new SimpleTopicDefinition(topic));
-
     this.brokerUrl = bootstrapServers;
     this.topic = topic;
-    this.producer = new KafkaProducer<>(
-        new ProducerConfigFactory(protocol, bootstrapServers).buildProperties(appenders));
+    this.producer = new KafkaProducer<>(makeProperties(protocol, appenders));
     this.connected = true;
   }
 
@@ -93,7 +92,7 @@ public class SpKafkaProducer implements EventProducer, Serializable {
   @Override
   public void connect() {
     LOG.debug("Kafka producer: Connecting to " + protocol.getTopicDefinition().getActualTopicName());
-    this.brokerUrl = protocol.getBrokerHostname() + ":" + protocol.getKafkaPort();
+    this.brokerUrl = protocol.resolveBootstrapServers();
     this.topic = protocol.getTopicDefinition().getActualTopicName();
 
     try {

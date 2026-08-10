@@ -24,8 +24,8 @@ topic.description=Select a Kafka topic
 broker-settings.title=Kafka broker settings
 broker-settings.description=Provide settings of the Kafka broker to connect with.
 
-bootstrap-servers.title=Kafka Bootstrap Servers
-bootstrap-servers.description=Comma-separated list of Kafka brokers in the format host:port, e.g. broker1:9092,broker2:9092. Corresponds to the Kafka client bootstrap.servers property.
+bootstrap-servers.title=Kafka Brokers
+bootstrap-servers.description=Comma-separated list of Kafka brokers as host:port. Example: broker1:9092,broker2:9092
 
 username.title=Username
 username.description=The username to authenticate with the broker

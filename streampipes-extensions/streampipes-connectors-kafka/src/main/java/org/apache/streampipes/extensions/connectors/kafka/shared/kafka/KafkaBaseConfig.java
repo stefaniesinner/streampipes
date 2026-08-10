@@ -35,27 +35,8 @@ public class KafkaBaseConfig {
     this.configAppenders = new ArrayList<>();
   }
 
-  public String getKafkaHost() {
-    return kafkaHost;
-  }
-
-  public void setKafkaHost(String kafkaHost) {
-    this.kafkaHost = kafkaHost;
-  }
-
-  public Integer getKafkaPort() {
-    return kafkaPort;
-  }
-
-  public void setKafkaPort(Integer kafkaPort) {
-    this.kafkaPort = kafkaPort;
-  }
-
   public String getBootstrapServers() {
-    if (bootstrapServers != null && !bootstrapServers.isBlank()) {
-      return bootstrapServers;
-    }
-    return kafkaHost + ":" + kafkaPort;
+    return bootstrapServers;
   }
 
   public void setBootstrapServers(String bootstrapServers) {

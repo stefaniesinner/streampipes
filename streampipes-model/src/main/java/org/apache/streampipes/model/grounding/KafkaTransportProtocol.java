@@ -24,6 +24,8 @@ public class KafkaTransportProtocol extends TransportProtocol {
 
   private int kafkaPort;
 
+  private String bootstrapServers;
+
   private Integer lingerMs;
 
   private String messageMaxBytes;
@@ -46,6 +48,7 @@ public class KafkaTransportProtocol extends TransportProtocol {
   public KafkaTransportProtocol(KafkaTransportProtocol other) {
     super(other);
     this.kafkaPort = other.getKafkaPort();
+    this.bootstrapServers = other.getBootstrapServers();
     this.acks = other.getAcks();
     this.batchSize = other.getBatchSize();
     this.groupId = other.getGroupId();
@@ -75,6 +78,21 @@ public class KafkaTransportProtocol extends TransportProtocol {
 
   public void setKafkaPort(int kafkaPort) {
     this.kafkaPort = kafkaPort;
+  }
+
+  public String getBootstrapServers() {
+    return bootstrapServers;
+  }
+
+  public void setBootstrapServers(String bootstrapServers) {
+    this.bootstrapServers = bootstrapServers;
+  }
+
+  public String resolveBootstrapServers() {
+    if (bootstrapServers != null && !bootstrapServers.isBlank()) {
+      return bootstrapServers;
+    }
+    return getBrokerHostname() + ":" + getKafkaPort();
   }
 
   public Integer getLingerMs() {

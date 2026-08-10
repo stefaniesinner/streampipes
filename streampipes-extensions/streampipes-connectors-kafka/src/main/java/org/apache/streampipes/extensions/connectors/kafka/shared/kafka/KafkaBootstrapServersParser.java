@@ -28,8 +28,9 @@ import java.util.regex.Pattern;
  * {@code bootstrap.servers} format, e.g. {@code broker1:9092,broker2:9092,broker3:9092}.
  *
  * <p>The validation is purely syntactical, no attempt is made to resolve or contact any of the
- * given brokers. Kafka clients only use the bootstrap servers to discover the actual cluster
- * members and tolerate unreachable entries as long as at least one broker responds.
+ * given brokers. That keeps the check fast, deterministic and usable without network access.
+ * Kafka clients use the bootstrap servers only to discover the actual cluster members and
+ * tolerate unreachable entries as long as at least one broker responds.
  */
 public class KafkaBootstrapServersParser {
 
@@ -38,11 +39,16 @@ public class KafkaBootstrapServersParser {
   private static final int MIN_PORT = 1;
   private static final int MAX_PORT = 65535;
 
+  private static final String EMPTY_MESSAGE =
+      "No Kafka bootstrap server was provided. Expected at least one entry in the format host:port, "
+          + "e.g. broker1:9092,broker2:9092";
+
   /**
-   * Mirrors the host/port pattern used by the Kafka client itself, so bracketed and unbracketed
-   * IPv6 addresses ({@code [::1]:9092}) are accepted as well.
+   * Either a bracketed IPv6 address such as {@code [::1]} or a plain hostname or IPv4 address,
+   * followed by the port. The two alternatives keep unbalanced brackets and stray colons out.
    */
-  private static final Pattern HOST_PORT_PATTERN = Pattern.compile("^\\[?([0-9a-zA-Z\\-%._:]*)]?:([0-9]{1,5})$");
+  private static final Pattern HOST_PORT_PATTERN =
+      Pattern.compile("^(\\[[0-9a-zA-Z:._%\\-]+]|[0-9a-zA-Z._%\\-]+):([0-9]{1,5})$");
 
   private KafkaBootstrapServersParser() {
   }
@@ -52,14 +58,12 @@ public class KafkaBootstrapServersParser {
    * whitespace, empty entries and duplicates.
    *
    * @param rawValue a comma-separated list of {@code host:port} pairs
-   * @return the normalized list of bootstrap servers, ready to be passed to a Kafka client
-   * @throws SpRuntimeException if the value is empty or if any entry is not a valid {@code host:port} pair
+   * @return the normalized list, ready to be passed to a Kafka client
+   * @throws SpRuntimeException if the value is empty or any entry is not a valid {@code host:port} pair
    */
   public static String parseAndValidate(String rawValue) {
     if (rawValue == null || rawValue.isBlank()) {
-      throw new SpRuntimeException(
-          "No Kafka bootstrap server was provided. Expected at least one entry in the format host:port, "
-              + "e.g. broker1:9092,broker2:9092");
+      throw new SpRuntimeException(EMPTY_MESSAGE);
     }
 
     var bootstrapServers = new LinkedHashSet<String>();
@@ -71,9 +75,7 @@ public class KafkaBootstrapServersParser {
     }
 
     if (bootstrapServers.isEmpty()) {
-      throw new SpRuntimeException(
-          "No Kafka bootstrap server was provided. Expected at least one entry in the format host:port, "
-              + "e.g. broker1:9092,broker2:9092");
+      throw new SpRuntimeException(EMPTY_MESSAGE);
     }
 
     return String.join(SEPARATOR, bootstrapServers);
@@ -81,9 +83,10 @@ public class KafkaBootstrapServersParser {
 
   private static String validate(String bootstrapServer) {
     var matcher = HOST_PORT_PATTERN.matcher(bootstrapServer);
-    if (!matcher.matches() || matcher.group(1).isEmpty()) {
+    if (!matcher.matches()) {
       throw new SpRuntimeException(
-          "'%s' is not a valid Kafka bootstrap server, expected format is host:port".formatted(bootstrapServer));
+          ("'%s' is not a valid Kafka bootstrap server. Expected host:port, with multiple servers "
+              + "separated by a comma, e.g. broker1:9092,broker2:9092").formatted(bootstrapServer));
     }
 
     var port = Integer.parseInt(matcher.group(2));

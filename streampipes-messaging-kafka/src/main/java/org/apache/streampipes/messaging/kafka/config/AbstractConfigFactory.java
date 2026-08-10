@@ -29,28 +29,19 @@ public abstract class AbstractConfigFactory {
 
   protected KafkaTransportProtocol protocol;
 
-  private final String bootstrapServers;
-
   public AbstractConfigFactory(KafkaTransportProtocol protocol) {
-    this(protocol, null);
-  }
-
-  public AbstractConfigFactory(KafkaTransportProtocol protocol, String bootstrapServers) {
     this.protocol = protocol;
-    this.bootstrapServers = bootstrapServers;
   }
 
   protected abstract Properties makeDefaultProperties();
 
   protected <T> T getConfigOrDefault(Supplier<T> function,
-                                      T defaultValue) {
+                                     T defaultValue) {
     return function.get() != null ? function.get() : defaultValue;
   }
 
   protected String getBrokerUrl() {
-    return bootstrapServers != null
-        ? bootstrapServers
-        : protocol.getBrokerHostname() + COLON + protocol.getKafkaPort();
+    return protocol.resolveBootstrapServers();
   }
 
   public Properties buildProperties(List<KafkaConfigAppender> appenders) {

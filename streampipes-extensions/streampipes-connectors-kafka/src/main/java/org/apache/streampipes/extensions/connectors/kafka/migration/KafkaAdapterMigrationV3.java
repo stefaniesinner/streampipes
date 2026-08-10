@@ -18,35 +18,35 @@
 
 package org.apache.streampipes.extensions.connectors.kafka.migration;
 
-import org.apache.streampipes.extensions.api.extractor.IDataSinkParameterExtractor;
-import org.apache.streampipes.extensions.api.migration.IDataSinkMigrator;
-import org.apache.streampipes.extensions.connectors.kafka.sink.KafkaPublishSink;
+import org.apache.streampipes.extensions.api.extractor.IStaticPropertyExtractor;
+import org.apache.streampipes.extensions.api.migration.IAdapterMigrator;
+import org.apache.streampipes.extensions.connectors.kafka.adapter.KafkaProtocol;
+import org.apache.streampipes.model.connect.adapter.AdapterDescription;
 import org.apache.streampipes.model.extensions.svcdiscovery.SpServiceTagPrefix;
-import org.apache.streampipes.model.graph.DataSinkInvocation;
 import org.apache.streampipes.model.migration.MigrationResult;
 import org.apache.streampipes.model.migration.ModelMigratorConfig;
 
 /**
- * Replaces the single-broker configuration (host and port) of the Kafka sink with a single
+ * Replaces the single-broker configuration (host and port) of the Kafka adapter with a single
  * {@code bootstrap-servers} configuration that accepts a comma-separated list of brokers.
  */
-public class KafkaSinkMigrationV3 implements IDataSinkMigrator {
+public class KafkaAdapterMigrationV3 implements IAdapterMigrator {
 
   @Override
   public ModelMigratorConfig config() {
     return new ModelMigratorConfig(
-        KafkaPublishSink.ID,
-        SpServiceTagPrefix.DATA_SINK,
+        KafkaProtocol.ID,
+        SpServiceTagPrefix.ADAPTER,
         2,
         3
     );
   }
 
   @Override
-  public MigrationResult<DataSinkInvocation> migrate(DataSinkInvocation element,
-                                                     IDataSinkParameterExtractor extractor) throws RuntimeException {
-    if (!KafkaBootstrapServersMigration.merge(element.getStaticProperties())) {
-      return MigrationResult.failure(element, KafkaBootstrapServersMigration.missingHostMessage("sink"));
+  public MigrationResult<AdapterDescription> migrate(AdapterDescription element,
+                                                     IStaticPropertyExtractor extractor) throws RuntimeException {
+    if (!KafkaBootstrapServersMigration.merge(element.getConfig())) {
+      return MigrationResult.failure(element, KafkaBootstrapServersMigration.missingHostMessage("adapter"));
     }
     return MigrationResult.success(element);
   }
