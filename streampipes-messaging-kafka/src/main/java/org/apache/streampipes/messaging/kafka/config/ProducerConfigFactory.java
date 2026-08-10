@@ -42,10 +42,6 @@ public class ProducerConfigFactory extends AbstractConfigFactory {
     super(protocol);
   }
 
-  public ProducerConfigFactory(KafkaTransportProtocol protocol, String bootstrapServers) {
-    super(protocol, bootstrapServers);
-  }
-
   @Override
   public Properties makeDefaultProperties() {
     Properties props = new Properties();
