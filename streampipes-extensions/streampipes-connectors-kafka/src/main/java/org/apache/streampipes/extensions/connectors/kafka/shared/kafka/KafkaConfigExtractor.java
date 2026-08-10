@@ -26,6 +26,7 @@ import org.apache.streampipes.messaging.kafka.config.KafkaConfigAppender;
 import org.apache.streampipes.messaging.kafka.config.SimpleConfigAppender;
 import org.apache.streampipes.messaging.kafka.security.KafkaSecurityProtocolConfigAppender;
 import org.apache.streampipes.messaging.kafka.security.KafkaSecuritySaslConfigAppender;
+import org.apache.streampipes.model.staticproperty.MappingPropertyUnary;
 import org.apache.streampipes.model.staticproperty.StaticPropertyAlternatives;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -41,12 +42,16 @@ import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.Ka
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.ADDITIONAL_PROPERTIES;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.CONSUMER_GROUP;
+import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.EXPRESSION_MESSAGE_KEY_VALUE;
+import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.FIELD_MESSAGE_KEY_VALUE;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.GROUP_ID_INPUT;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.HOST_KEY;
+import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.MESSAGE_KEY_MODE;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.PASSWORD_KEY;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.PORT_KEY;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.RANDOM_GROUP_ID;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.SECURITY_MECHANISM;
+import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.STATIC_MESSAGE_KEY_VALUE;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.TOPIC_KEY;
 import static org.apache.streampipes.extensions.connectors.kafka.shared.kafka.KafkaConfigProvider.USERNAME_KEY;
 
@@ -84,11 +89,46 @@ public class KafkaConfigExtractor {
     return config;
   }
 
-  public KafkaBaseConfig extractSinkConfig(IParameterExtractor extractor) {
-    var config = extractCommonConfigs(extractor, new KafkaBaseConfig());
+  public KafkaSinkConfig extractSinkConfig(IParameterExtractor extractor) {
+    var config = extractCommonConfigs(extractor, new KafkaSinkConfig());
     config.setTopic(extractor.singleValueParameter(TOPIC_KEY, String.class));
+    config.setKeyResolver(extractKeyResolver(extractor));
 
     return config;
+  }
+
+  /**
+   * Extracts the configuration of the Kafka message key.
+   * Sinks which have not yet been migrated do not provide the configuration, in this case
+   * records are published without a key.
+   */
+  public KafkaKeyResolver extractKeyResolver(IParameterExtractor extractor) {
+    var alternatives = extractor.getStaticPropertyByName(MESSAGE_KEY_MODE, StaticPropertyAlternatives.class);
+    if (alternatives == null) {
+      return KafkaKeyResolver.noKey();
+    }
+
+    var mode = KafkaMessageKeyMode.fromInternalId(extractor.selectedAlternativeInternalId(MESSAGE_KEY_MODE));
+
+    return switch (mode) {
+      case STATIC -> new KafkaKeyResolver(mode, extractor.singleValueParameter(STATIC_MESSAGE_KEY_VALUE, String.class));
+      case FIELD -> new KafkaKeyResolver(mode, extractSelectedKeyField(extractor));
+      case EXPRESSION -> new KafkaKeyResolver(
+          mode,
+          extractor.singleValueParameter(EXPRESSION_MESSAGE_KEY_VALUE, String.class));
+      case NONE -> KafkaKeyResolver.noKey();
+    };
+  }
+
+  /**
+   * The mapping property is nested within an alternative, which is not covered by
+   * {@code IParameterExtractor#mappingPropertyValue}. Therefore, the selected property selector is
+   * read directly from the static property.
+   */
+  private String extractSelectedKeyField(IParameterExtractor extractor) {
+    var mappingProperty = extractor.getStaticPropertyByName(FIELD_MESSAGE_KEY_VALUE, MappingPropertyUnary.class);
+
+    return mappingProperty != null ? mappingProperty.getSelectedProperty() : null;
   }
 
   private <T extends KafkaBaseConfig> T extractCommonConfigs(IParameterExtractor extractor,

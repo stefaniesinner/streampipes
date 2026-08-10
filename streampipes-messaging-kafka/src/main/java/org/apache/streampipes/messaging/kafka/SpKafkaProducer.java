@@ -80,9 +80,29 @@ public class SpKafkaProducer implements EventProducer, Serializable {
     publish(message.getBytes());
   }
 
+  /**
+   * Publishes a message with the given Kafka record key.
+   *
+   * @param message the message to publish
+   * @param key     the record key, {@code null} publishes the record without a key
+   */
+  public void publish(String message, String key) {
+    publish(message.getBytes(), key);
+  }
+
   public void publish(byte[] message) {
+    publish(message, null);
+  }
+
+  /**
+   * Publishes a message with the given Kafka record key.
+   *
+   * @param message the message to publish
+   * @param key     the record key, {@code null} publishes the record without a key
+   */
+  public void publish(byte[] message, String key) {
     if (connected) {
-      producer.send(new ProducerRecord<>(topic, message));
+      producer.send(new ProducerRecord<>(topic, key, message));
     }
   }
 

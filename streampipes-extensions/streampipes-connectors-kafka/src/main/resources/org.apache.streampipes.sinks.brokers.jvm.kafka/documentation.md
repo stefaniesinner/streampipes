@@ -63,6 +63,24 @@ This sink accepts any incoming event type and serializes it to JSON format befor
 ### Topic Settings
 * **Topic**: The Kafka topic where events will be published. If the topic doesn't exist, it will be created automatically with default settings.
 
+### Message Key
+Kafka partitions records by key. A key is therefore required for consistent partitioning, for log
+compaction and for consumers that look up records by key. Choose one of the following modes:
+
+* **No key**: Records are published without a key. Kafka distributes them across all partitions of
+  the topic. This is the default and the behaviour of previous versions.
+* **Static value**: The same key is attached to every record, e.g. `line-4`. All records of this
+  sink end up in the same partition.
+* **Event field**: The value of a selected event field is used as key, e.g. the field `machineId`.
+  Only primitive fields can be selected. Records that share the same field value are written to the
+  same partition and therefore keep their relative order.
+* **Expression**: The key is built from static text and field placeholders in the form
+  `#fieldName#`, e.g. `plant-1-#machineId#`. Placeholders refer to the runtime name of a field.
+
+Keys are serialized as strings. If a key cannot be resolved for an event, e.g. because the selected
+field is not part of the event, the event is not published and an error is logged. If the selected
+field is empty, the record is published without a key.
+
 ### Advanced Settings
 * **Additional Configurations**: Add custom Kafka producer configurations in key=value format. Each configuration should be on a new line. For example:
   ```
@@ -76,6 +94,7 @@ This sink accepts any incoming event type and serializes it to JSON format befor
 ## Features
 * **Message Handling**:
   * Automatic JSON serialization of events
+  * Optional record keys from static values, event fields or expressions
   * Configurable message size limits
   * Batch processing support
   * Automatic topic creation
