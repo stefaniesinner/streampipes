@@ -22,37 +22,133 @@ import org.apache.streampipes.model.extensions.svcdiscovery.SpServiceTagPrefix;
 import org.apache.streampipes.model.graph.DataSinkInvocation;
 import org.apache.streampipes.model.migration.MigrationResult;
 import org.apache.streampipes.model.migration.ModelMigratorConfig;
+import org.apache.streampipes.model.staticproperty.FreeTextStaticProperty;
+import org.apache.streampipes.model.staticproperty.SlideToggleStaticProperty;
+import org.apache.streampipes.model.staticproperty.StaticProperty;
+import org.apache.streampipes.sinks.databases.jvm.postgresql.PostgreSqlSink;
+import org.apache.streampipes.vocabulary.XSD;
 
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Tests for {@link PostgreSqlSinkMigrationV1}.
+ */
 class PostgreSqlSinkMigrationV1Test {
 
-    @Test
-    void configTargetsVersionZeroToOne() {
-        ModelMigratorConfig config = new PostgreSqlSinkMigrationV1().config();
-        assertEquals("org.apache.streampipes.sinks.databases.jvm.postgresql", config.targetAppId());
-        assertEquals(SpServiceTagPrefix.DATA_SINK, config.modelType());
-        assertEquals(0, config.fromVersion());
-        assertEquals(1, config.toVersion());
+    private static final String REQUIRE_EXISTING_TABLE = "require_existing_table";
+    private static final String BATCH_SIZE_KEY = "batch_size";
+
+    /**
+     * Runs the migration on a pipeline saved with the given fields and returns it afterward.
+     *
+     * @param existingProperties the fields the pipeline already had.
+     * @return the migrated pipeline element.
+     */
+    private DataSinkInvocation runMigration(StaticProperty... existingProperties) {
+        DataSinkInvocation pipelineElement = new DataSinkInvocation();
+        List<StaticProperty> properties = new ArrayList<>();
+        Collections.addAll(properties, existingProperties);
+        pipelineElement.setStaticProperties(properties);
+
+        MigrationResult<DataSinkInvocation> result =
+            new PostgreSqlSinkMigrationV1().migrate(pipelineElement, null);
+        assertTrue(result.success(), "the migration should report success");
+        return pipelineElement;
+    }
+
+    /**
+     * Returns the field with the given internal name, or fails the test if the migration did not add it.
+     */
+    private StaticProperty findField(DataSinkInvocation element, String internalName) {
+        return element.getStaticProperties().stream()
+            .filter(property -> internalName.equals(property.getInternalName()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("migration did not add a field named '" + internalName + "'"));
     }
 
     @Test
-    void migrateAddsTwoStaticProperties() {
-        DataSinkInvocation element = new DataSinkInvocation();
-        element.setStaticProperties(new ArrayList<>());
+    void testConfig_migration_fromVersionZeroToOne() {
+        ModelMigratorConfig config = new PostgreSqlSinkMigrationV1().config();
 
-        MigrationResult<DataSinkInvocation> result = new PostgreSqlSinkMigrationV1().migrate(element, null);
+        String expectedAppId = PostgreSqlSink.ID;
+        String actualAppId = config.targetAppId();
+        assertEquals(expectedAppId, actualAppId, "migration should target the PostgreSQL sink");
 
-        assertTrue(result.success());
-        assertEquals(2, element.getStaticProperties().size());
-        assertTrue(element.getStaticProperties().stream()
-                .anyMatch(sp -> PostgreSqlSinkMigrationV1.APPEND_TO_EXISTING_KEY.equals(sp.getInternalName())));
-        assertTrue(element.getStaticProperties().stream()
-                .anyMatch(sp -> PostgreSqlSinkMigrationV1.BATCH_SIZE_KEY.equals(sp.getInternalName())));
+        SpServiceTagPrefix expectedModelType = SpServiceTagPrefix.DATA_SINK;
+        SpServiceTagPrefix actualModelType = config.modelType();
+        assertEquals(expectedModelType, actualModelType, "migration should apply to a data sink");
+
+        int expectedFromVersion = 0;
+        int actualFromVersion = config.fromVersion();
+        assertEquals(expectedFromVersion, actualFromVersion, "migration should start at version 0");
+
+        int expectedToVersion = 1;
+        int actualToVersion = config.toVersion();
+        assertEquals(expectedToVersion, actualToVersion, "migration should target version 1");
+    }
+
+    @Test
+    void testMigrate_pipelineWithoutTheNewFields_addsTwoFields() {
+        DataSinkInvocation migrated = runMigration();
+
+        int expected = 2;
+        int actual = migrated.getStaticProperties().size();
+        assertEquals(expected, actual, "the migration should add the two new fields");
+
+        findField(migrated, REQUIRE_EXISTING_TABLE);
+        findField(migrated, BATCH_SIZE_KEY);
+    }
+
+    @Test
+    void testMigrate_addsUseExistingTableToggleTurnedOff() {
+        DataSinkInvocation migrated = runMigration();
+        SlideToggleStaticProperty toggle =
+            (SlideToggleStaticProperty) findField(migrated, REQUIRE_EXISTING_TABLE);
+
+        boolean expected = false;
+        boolean actual = toggle.isSelected();
+
+        assertEquals(expected, actual, "the toggle must default to off to preserve the old behavior");
+    }
+
+    @Test
+    void testMigrate_addsBatchSizeDefaultingToOne() {
+        DataSinkInvocation migrated = runMigration();
+        FreeTextStaticProperty batchSize =
+            (FreeTextStaticProperty) findField(migrated, BATCH_SIZE_KEY);
+
+        String expectedValue = "1";
+        String actualValue = batchSize.getValue();
+        assertEquals(expectedValue, actualValue, "the batch size must default to 1");
+
+        URI expectedType = XSD.INTEGER;
+        URI actualType = batchSize.getRequiredDatatype();
+
+        assertEquals(expectedType, actualType, "the batch size should be restricted to integers");
+    }
+
+    @Test
+    void testMigrate_pipelineWithExistingFields_keepsThemAndAddsTheTwoNewOnes() {
+        FreeTextStaticProperty host = new FreeTextStaticProperty("db_host", "Hostname", "", XSD.STRING);
+        FreeTextStaticProperty table = new FreeTextStaticProperty("db_table", "Table Name", "", XSD.STRING);
+
+        DataSinkInvocation migrated = runMigration(host, table);
+
+        int expected = 4;
+        int actual = migrated.getStaticProperties().size();
+        assertEquals(expected, actual, "existing fields should be kept and the two new ones added");
+
+        findField(migrated, "db_host");
+        findField(migrated, "db_table");
+        findField(migrated, REQUIRE_EXISTING_TABLE);
+        findField(migrated, BATCH_SIZE_KEY);
     }
 }

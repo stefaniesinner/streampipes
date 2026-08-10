@@ -30,6 +30,9 @@ db_name.description=The name of the database where events will be stored
 db_table.title=Table Name
 db_table.description=The name of the table where events will be stored (will be created if it does not exist)
 
+require_existing_table.title=Require Existing Table
+require_existing_table.description=Write events into the table entered above
+
 db_user.title=Username
 db_user.description=The username for the PostgreSQL Server
 
@@ -39,8 +42,5 @@ db_password.description=The password for the PostgreSQL Server
 ssl_mode.title=SSL Mode
 ssl_mode.description=Should the connection be secured via SSL?
 
-append_to_existing.title=Write to existing table
-append_to_existing.description=If enabled, the sink writes to a table provided by the user to protect the schema.
-
 batch_size.title=Batch Size
-batch_size.description=Number of events buffered before they are written in a single batch insert.
+batch_size.description=How many events should the sink collect before writing them together to the database?

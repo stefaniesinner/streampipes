@@ -54,6 +54,11 @@ The name of the database where events will be stored
 
 The name of the table where events will be stored (will be created if it does not exist)
 
+### Require Existing Table
+
+Writes events into the table entered above. If the table does not exist, the pipeline does not start.
+Enable this option to make sure the table you write into complies with your database schema guidelines.
+
 ### Username
 
 The username for the PostgreSQL Server.
@@ -62,17 +67,11 @@ The username for the PostgreSQL Server.
 
 The password for the PostgreSQL Server.
 
-### Write to existing table
-
-If enabled, the sink writes to a table that already exists. 
-It reads the existing schema from `information_schema.columns` and validates your stream against it. 
-If a column is missing or a type does not match, the pipeline fails at start with an error message.
-
 ### Batch Size
 
-Number of events buffered before they are written in a single batch insert. 
-A higher value is faster for high-throughput streams because it needs fewer round trips to the database. 
-Set it to 1 to write each event immediately. Buffered events are flushed when the pipeline stops.
+The number of events collected before they are written together to the database. Use the value 1 to
+write each event on its own. Higher values are faster at high data rates. Buffered events are flushed
+when the pipeline stops.
 
 ## Output
 

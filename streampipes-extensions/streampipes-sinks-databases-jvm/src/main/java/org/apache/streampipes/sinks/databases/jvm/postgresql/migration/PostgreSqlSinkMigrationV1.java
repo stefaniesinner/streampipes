@@ -27,60 +27,67 @@ import org.apache.streampipes.model.migration.ModelMigratorConfig;
 import org.apache.streampipes.model.staticproperty.FreeTextStaticProperty;
 import org.apache.streampipes.model.staticproperty.SlideToggleStaticProperty;
 import org.apache.streampipes.sdk.helpers.Labels;
+import org.apache.streampipes.sinks.databases.jvm.postgresql.PostgreSqlSink;
 import org.apache.streampipes.vocabulary.XSD;
 
 /**
  * Migrates the PostgreSQL sink from model version 0 to 1.
  * <p>
- * Version 1 adds two configuration fields: a toggle to write only to an existing table, and a
- * batch size for grouping events into a single insert. Existing pipelines get both fields with
- * safe defaults (toggle off, batch size 1).
+ * Version 1 adds two configuration fields: a toggle to write into an existing table, and a
+ * batch size for grouping events into a single insert. Existing pipelines keep their previous
+ * behavior through the default values: toggle off (create a new table) and batch size 1.
  */
 public class PostgreSqlSinkMigrationV1 implements IDataSinkMigrator {
-
-    public static final String APPEND_TO_EXISTING_KEY = "append_to_existing";
-    public static final String BATCH_SIZE_KEY = "batch_size";
-    public static final String ID = "org.apache.streampipes.sinks.databases.jvm.postgresql";
 
     @Override
     public ModelMigratorConfig config() {
         return new ModelMigratorConfig(
-                ID,
-                SpServiceTagPrefix.DATA_SINK,
-                0,
-                1
+            PostgreSqlSink.ID,
+            SpServiceTagPrefix.DATA_SINK,
+            0,
+            1
         );
     }
 
     @Override
     public MigrationResult<DataSinkInvocation> migrate(DataSinkInvocation element,
-                                                       IDataSinkParameterExtractor extractor) throws RuntimeException {
-
-        // TODO: Rewrite label and description to make it more understandable for users.
-        var appendLabel = Labels.from(
-                APPEND_TO_EXISTING_KEY,
-                "Write to existing table",
-                "If enabled, the sink writes to a provided table");
-        var appendToggle = new SlideToggleStaticProperty(
-                appendLabel.getInternalId(),
-                appendLabel.getLabel(),
-                appendLabel.getDescription(),
-                false);
-        appendToggle.setSelected(false);
-        element.getStaticProperties().add(appendToggle);
-
-        var batchLabel = Labels.from(
-                BATCH_SIZE_KEY,
-                "Batch Size",
-                "Number of events buffered before a batch insert is sent");
-        var batchSize = new FreeTextStaticProperty(
-                batchLabel.getInternalId(),
-                batchLabel.getLabel(),
-                batchLabel.getDescription());
-        batchSize.setRequiredDatatype(XSD.INTEGER);
-        batchSize.setValue("1");
-        element.getStaticProperties().add(batchSize);
-
+                                                       IDataSinkParameterExtractor extractor)
+        throws RuntimeException {
+        addRequireTableToggle(element);
+        addBatchSize(element);
         return MigrationResult.success(element);
+    }
+
+    private void addRequireTableToggle(DataSinkInvocation element) {
+        var label = Labels.from(
+            PostgreSqlSink.REQUIRE_EXISTING_TABLE,
+            "Require Existing Table",
+            "Write events into the table entered above"
+        );
+        var staticProperty = new SlideToggleStaticProperty(
+            label.getInternalId(),
+            label.getLabel(),
+            label.getDescription(),
+            false
+        );
+
+        element.getStaticProperties().add(staticProperty);
+    }
+
+    private void addBatchSize(DataSinkInvocation element) {
+        var label = Labels.from(
+            PostgreSqlSink.BATCH_SIZE_KEY,
+            "Batch Size",
+            "How many events should the sink collect before writing them together to the database?"
+        );
+        var staticProperty = new FreeTextStaticProperty(
+            label.getInternalId(),
+            label.getLabel(),
+            label.getDescription()
+        );
+        staticProperty.setRequiredDatatype(XSD.INTEGER);
+        staticProperty.setValue("1");
+
+        element.getStaticProperties().add(staticProperty);
     }
 }
