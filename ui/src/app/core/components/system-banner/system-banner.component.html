@@ -15,8 +15,13 @@
   ~ limitations under the License.
   ~
   -->
-<ngx-loading-bar [color]="'var(--color-loading-bar)'"></ngx-loading-bar>
-<sp-system-banner></sp-system-banner>
-<div [@routeAnimations]="prepareRoute(outlet)">
-    <router-outlet #outlet="outlet"></router-outlet>
-</div>
+
+@if (banner?.enabled) {
+    <div class="system-banner">
+        <sp-alert-banner
+            [type]="alertType"
+            [title]="banner.text"
+            data-cy="system-banner"
+        ></sp-alert-banner>
+    </div>
+}

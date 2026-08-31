@@ -1,0 +1,113 @@
+<!--
+~ Licensed to the Apache Software Foundation (ASF) under one or more
+~ contributor license agreements.  See the NOTICE file distributed with
+~ this work for additional information regarding copyright ownership.
+~ The ASF licenses this file to You under the Apache License, Version 2.0
+~ (the "License"); you may not use this file except in compliance with
+~ the License.  You may obtain a copy of the License at
+~
+~    http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+~
+-->
+
+<sp-basic-nav-tabs [spNavigationItems]="tabs" [activeLink]="'banner'">
+    <div fxLayout="column" class="page-container-padding-inner max-w-50">
+        @if (formReady) {
+            <form [formGroup]="parentForm" fxLayout="column" class="w-100">
+                <sp-split-section
+                    [outline]="true"
+                    [compact]="true"
+                    [title]="'System Banner' | translate"
+                    [subtitle]="
+                        'A message shown on every page, including kiosk dashboards'
+                            | translate
+                    "
+                >
+                    <mat-checkbox
+                        formControlName="enabled"
+                        data-cy="banner-config-enabled"
+                        >{{ 'Show banner' | translate }}
+                    </mat-checkbox>
+
+                    <sp-form-field
+                        [level]="2"
+                        [label]="'Message' | translate"
+                        [description]="
+                            'The text shown in the banner' | translate
+                        "
+                    >
+                        <mat-form-field appearance="outline" fxFlex>
+                            <input
+                                formControlName="text"
+                                fxFlex
+                                matInput
+                                data-cy="banner-config-text"
+                            />
+                        </mat-form-field>
+                    </sp-form-field>
+
+                    <sp-form-field
+                        [level]="2"
+                        [label]="'Severity' | translate"
+                        [description]="
+                            'Controls the color of the banner' | translate
+                        "
+                    >
+                        <mat-form-field appearance="outline" fxFlex>
+                            <mat-select formControlName="severity">
+                                <mat-option value="INFO">{{
+                                    'Info' | translate
+                                }}</mat-option>
+                                <mat-option value="WARNING">{{
+                                    'Warning' | translate
+                                }}</mat-option>
+                                <mat-option value="ERROR">{{
+                                    'Critical' | translate
+                                }}</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+                    </sp-form-field>
+
+                    <sp-form-field
+                        [level]="2"
+                        [label]="'Hide after' | translate"
+                        [description]="
+                            'Leave empty to show the banner until it is disabled manually'
+                                | translate
+                        "
+                    >
+                        <sp-date-input
+                            [(date)]="expiryDate"
+                            data-cy="banner-config-expiry"
+                        ></sp-date-input>
+                        <button
+                            mat-flat-button
+                            class="btn-secondary"
+                            (click)="clearExpiry()"
+                        >
+                            <span>{{ 'Clear' | translate }}</span>
+                        </button>
+                    </sp-form-field>
+                </sp-split-section>
+
+                <div class="mt-10">
+                    <button
+                        mat-flat-button
+                        (click)="updateConfig()"
+                        [disabled]="parentForm.invalid"
+                        data-cy="banner-config-save"
+                    >
+                        <mat-icon>save</mat-icon>
+                        <span>{{ 'Save' | translate }}</span>
+                    </button>
+                </div>
+            </form>
+        }
+    </div>
+</sp-basic-nav-tabs>

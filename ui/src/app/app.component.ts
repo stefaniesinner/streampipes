@@ -23,12 +23,13 @@ import { Title } from '@angular/platform-browser';
 import { AppConstants } from './services/app.constants';
 import { TranslateService } from '@ngx-translate/core';
 import { LoadingBarModule } from '@ngx-loading-bar/core';
+import { SpSystemBannerComponent } from './core/components/system-banner/system-banner.component';
 
 @Component({
     selector: 'sp-app-root',
     templateUrl: './app.component.html',
     animations: [slideInAnimation],
-    imports: [LoadingBarModule, RouterOutlet],
+    imports: [LoadingBarModule, RouterOutlet, SpSystemBannerComponent],
 })
 export class AppComponent implements OnInit {
     private titleService = inject(Title);

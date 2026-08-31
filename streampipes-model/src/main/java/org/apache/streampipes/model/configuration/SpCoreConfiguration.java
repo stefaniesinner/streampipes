@@ -34,6 +34,7 @@ public class SpCoreConfiguration {
   private EmailTemplateConfig emailTemplateConfig;
   private GeneralConfig generalConfig;
   private LocationConfig locationConfig;
+  private BannerConfig bannerConfig;
 
   private boolean isConfigured;
   private SpCoreConfigurationStatus serviceStatus;
@@ -45,6 +46,7 @@ public class SpCoreConfiguration {
 
   public SpCoreConfiguration() {
     this.locationConfig = new LocationConfig(false, MapLayerType.TILE, "", "");
+    this.bannerConfig = BannerConfig.disabled();
   }
 
   public String getRev() {
@@ -133,6 +135,14 @@ public class SpCoreConfiguration {
 
   public void setLocationConfig(LocationConfig locationConfig) {
     this.locationConfig = locationConfig;
+  }
+
+  public BannerConfig getBannerConfig() {
+    return bannerConfig;
+  }
+
+  public void setBannerConfig(BannerConfig bannerConfig) {
+    this.bannerConfig = bannerConfig;
   }
 
   public List<ExportProviderSettings> getExportProviderSettings() {

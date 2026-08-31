@@ -34,6 +34,16 @@ const CORE_CONFIGURATION_SECTIONS: SpConfigurationSection[] = [
         order: 100,
     },
     {
+        itemId: 'banner',
+        itemTitle: 'Banner',
+        roles: ['ROLE_ADMIN'],
+        loadComponent: () =>
+            import('./banner-configuration/banner-configuration.component').then(
+                m => m.SpBannerConfigurationComponent,
+            ),
+        order: 150,
+    },
+    {
         itemId: 'export',
         itemTitle: 'Export/Import',
         roles: ['ROLE_ADMIN'],

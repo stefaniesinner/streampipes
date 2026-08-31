@@ -700,6 +700,25 @@ export class AssetType {
     }
 }
 
+export class BannerConfig {
+    enabled: boolean;
+    expiresAt: number;
+    severity: BannerSeverity;
+    text: string;
+
+    static fromData(data: BannerConfig, target?: BannerConfig): BannerConfig {
+        if (!data) {
+            return data;
+        }
+        const instance = target || new BannerConfig();
+        instance.enabled = data.enabled;
+        instance.expiresAt = data.expiresAt;
+        instance.severity = data.severity;
+        instance.text = data.text;
+        return instance;
+    }
+}
+
 export class CanvasPosition {
     x: number;
     y: number;
@@ -4653,6 +4672,8 @@ export class WildcardTopicMapping {
         return instance;
     }
 }
+
+export type BannerSeverity = 'INFO' | 'WARNING' | 'ERROR';
 
 export type CertificateState = 'REJECTED' | 'TRUSTED';
 
