@@ -20,15 +20,13 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
-    DestroyRef,
     EventEmitter,
     inject,
     OnInit,
     Output,
+    ViewChild,
 } from '@angular/core';
 import { ChartService, ChartSummaryDto } from '@streampipes/platform-services';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../../../services/auth.service';
 import { UserPrivilege } from '../../../../../core/auth/user-privilege.enum';
 import { ChartRegistry } from '../../../../../chart-shared/registry/chart-registry.service';
@@ -44,21 +42,18 @@ import { ChartPreviewComponent } from './chart-preview/chart-preview.component';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
-import {
-    MatFormField,
-    MatPrefix,
-    MatSuffix,
-} from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
 import { MatTooltip } from '@angular/material/tooltip';
 import {
     CdkFixedSizeVirtualScroll,
     CdkVirtualForOf,
     CdkVirtualScrollViewport,
 } from '@angular/cdk/scrolling';
-import { debounceTime, distinctUntilChanged, finalize } from 'rxjs';
+import { finalize } from 'rxjs';
 import { ChartSelectionItem } from './chart-selection.model';
-import { SpSpinnerComponent } from '@streampipes/shared-ui';
+import {
+    SpSearchFieldComponent,
+    SpSpinnerComponent,
+} from '@streampipes/shared-ui';
 
 @Component({
     selector: 'sp-chart-selection',
@@ -75,17 +70,13 @@ import { SpSpinnerComponent } from '@streampipes/shared-ui';
         MatButton,
         MatIconButton,
         MatIcon,
-        MatFormField,
-        MatPrefix,
-        MatSuffix,
-        MatInput,
+        SpSearchFieldComponent,
         SpSpinnerComponent,
         TranslatePipe,
         MatTooltip,
         CdkVirtualScrollViewport,
         CdkFixedSizeVirtualScroll,
         CdkVirtualForOf,
-        ReactiveFormsModule,
     ],
 })
 export class ChartSelectionComponent implements OnInit {
@@ -94,18 +85,18 @@ export class ChartSelectionComponent implements OnInit {
     private chartRegistryService = inject(ChartRegistry);
     private chartRoutingService = inject(ChartRoutingService);
     private cdr = inject(ChangeDetectorRef);
-    private destroyRef = inject(DestroyRef);
 
     @Output()
     addChartEmitter: EventEmitter<string> = new EventEmitter();
+
+    @ViewChild(SpSearchFieldComponent)
+    searchField!: SpSearchFieldComponent;
 
     charts: ChartSummaryDto[] = [];
     chartItems: ChartSelectionItem[] = [];
     filteredChartItems: ChartSelectionItem[] = [];
     searchTerm = '';
-    searchControl = new FormControl('', { nonNullable: true });
     isRefreshing = false;
-    hasActiveSearch = false;
     readonly chartItemSize = 132;
 
     hasChartWritePrivileges: boolean = false;
@@ -116,16 +107,6 @@ export class ChartSelectionComponent implements OnInit {
         );
 
         this.refreshCharts();
-
-        this.searchControl.valueChanges
-            .pipe(
-                debounceTime(150),
-                distinctUntilChanged(),
-                takeUntilDestroyed(this.destroyRef),
-            )
-            .subscribe(value => {
-                this.setSearchTerm(value);
-            });
     }
 
     navigateToDataViewCreation(): void {
@@ -162,18 +143,22 @@ export class ChartSelectionComponent implements OnInit {
             });
     }
 
+    /**
+     * Resets the search via the field, which reports the empty term back.
+     */
     clearSearch(): void {
-        this.searchControl.setValue('', { emitEvent: false });
-        this.setSearchTerm('');
+        this.searchField.clearSearch();
     }
 
     trackByChartId(index: number, item: ChartSelectionItem): string {
         return item.chart.elementId;
     }
 
-    private setSearchTerm(value: string): void {
+    /**
+     * Filters the chart list with the debounced term from the search field.
+     */
+    setSearchTerm(value: string): void {
         this.searchTerm = value;
-        this.hasActiveSearch = this.searchTerm.trim().length > 0;
         this.applySearch();
         this.cdr.markForCheck();
     }

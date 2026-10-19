@@ -29,12 +29,8 @@ import {
     AssetConstants,
     AssetLinkType,
     AssetManagementService,
-    AssetSiteDesc,
     GenericStorageService,
-    Isa95TypeDesc,
-    Isa95TypeService,
     SpAsset,
-    SpLabel,
 } from '@streampipes/platform-services';
 import {
     AssetBrowserData,
@@ -60,7 +56,6 @@ export class SpAssetBrowserService {
     activeAssetLink = undefined;
 
     private genericStorageService = inject(GenericStorageService);
-    private typeService = inject(Isa95TypeService);
     private assetService = inject(AssetManagementService);
     private localStorageService = inject(LocalStorageService);
     private currentUserService = inject(CurrentUserService);
@@ -96,7 +91,6 @@ export class SpAssetBrowserService {
     }
 
     loadAssetData(): void {
-        const previousAssetData = this.loadedAssetData;
         const activeFilters = this.filter$.getValue();
         const assets$ = this.assetService.getAllAssets();
         const assetLinks$ = this.genericStorageService.getAllDocuments(
@@ -120,10 +114,8 @@ export class SpAssetBrowserService {
             if (activeFilters === undefined) {
                 this.reloadFilters();
             } else {
-                const refreshedFilters = this.refreshFilterSelections(
-                    activeFilters,
-                    previousAssetData,
-                );
+                const refreshedFilters =
+                    this.removeDeletedAssets(activeFilters);
                 this.filter$.next(refreshedFilters);
                 this.applyFilters(refreshedFilters);
             }
@@ -145,17 +137,7 @@ export class SpAssetBrowserService {
             this.activeAssetLink !== undefined &&
             this.assetData$.getValue() !== undefined
         ) {
-            const data = this.assetData$.getValue();
-            const filters = {
-                selectedSites: [...data.sites].sort((a, b) =>
-                    a.label.localeCompare(b.label),
-                ),
-                selectedLabels: [...data.labels],
-                selectedTypes: [...this.typeService.getTypeDescriptions()],
-                selectedAssetModels: [...data.assets],
-            };
-            this.filter$.next(filters);
-            this.applyFilters(filters);
+            this.selectAssets([]);
         }
     }
 
@@ -174,33 +156,24 @@ export class SpAssetBrowserService {
         });
     }
 
+    /**
+     * Stores the selection and applies it at once, because the filter menu has no apply step.
+     */
+    selectAssets(selectedAssetIds: string[]): void {
+        const filters: AssetFilter = { selectedAssetIds };
+        this.filter$.next(filters);
+        this.applyFilters(filters);
+    }
+
+    /**
+     * Narrows all resources to the selected assets; an empty selection means no filter.
+     */
     applyFilters(filter: AssetFilter) {
         const clonedLoadedAssetData = JSON.parse(
             JSON.stringify(this.loadedAssetData),
         ) as AssetBrowserData;
-        const allAssetsSelected = this.allSelected(
-            clonedLoadedAssetData.assets,
-            filter.selectedAssetModels,
-        );
-        const allTypesSelected = this.allSelected(
-            this.typeService.getTypeDescriptions(),
-            filter.selectedTypes,
-        );
-        const allSitesSelected = this.allSelected(
-            clonedLoadedAssetData.sites,
-            filter.selectedSites,
-        );
-        const allLabelsSelected = this.allSelected(
-            clonedLoadedAssetData.labels,
-            filter.selectedLabels,
-        );
 
-        if (
-            allAssetsSelected &&
-            allTypesSelected &&
-            allSitesSelected &&
-            allLabelsSelected
-        ) {
+        if (filter.selectedAssetIds.length === 0) {
             this.currentAssetFilter$.next({
                 filterActive: false,
                 filterDisabled: false,
@@ -209,35 +182,18 @@ export class SpAssetBrowserService {
                 currentAssetLink: this.activeAssetLink,
             });
         } else {
-            const filteredAssets = clonedLoadedAssetData.assets
-                .filter(
-                    a =>
-                        allAssetsSelected ||
-                        this.filterAssetModel(a, filter.selectedAssetModels),
-                )
-                .filter(
-                    a =>
-                        allTypesSelected ||
-                        this.filterType(a, filter.selectedTypes),
-                )
-                .filter(
-                    a =>
-                        allSitesSelected ||
-                        this.filterSites(a, filter.selectedSites),
-                )
-                .map(a =>
-                    allLabelsSelected ||
-                    this.filterLabels(a, filter.selectedLabels)
-                        ? a
-                        : null,
-                )
-                .filter((a: SpAsset | null) => a !== null); // remove nulls from the array
-
-            this.applyAssetFilter(filteredAssets);
+            const selectedAssetIds = new Set(filter.selectedAssetIds);
+            const filteredAssets = clonedLoadedAssetData.assets.flatMap(asset =>
+                this.keepSelectedBranches(asset, selectedAssetIds),
+            );
+            this.applyAssetFilter(filteredAssets, selectedAssetIds.size);
         }
     }
 
-    applyAssetFilter(filteredAssets: SpAsset[]) {
+    /**
+     * Publishes the filtered assets and the resource ids linked to them.
+     */
+    applyAssetFilter(filteredAssets: SpAsset[], selectedAssetCount: number) {
         let elementIds: Set<string> | undefined = undefined;
 
         if (filteredAssets.length > 0) {
@@ -257,170 +213,59 @@ export class SpAssetBrowserService {
             activeElementIds: elementIds,
             selectedAssets: filteredAssets,
             currentAssetLink: this.activeAssetLink,
-            allAssetCount: this.assetData$.getValue().assets.length,
-            selectedAssetCount: filteredAssets.length,
+            allAssetCount: this.listAllAssets(this.loadedAssetData.assets)
+                .length,
+            selectedAssetCount,
             filterDisabled: false,
         };
         this.currentAssetFilter$.next(currentFilter);
     }
 
-    private refreshFilterSelections(
-        activeFilters: AssetFilter,
-        previousAssetData: AssetBrowserData,
-    ): AssetFilter {
-        const previousTypes = this.typeService.getTypeDescriptions();
-        const currentTypes = this.typeService.getTypeDescriptions();
+    /**
+     * Keeps selected assets with everything below them, plus the parents leading there.
+     * Parents lose their own links, so only resources of selected branches pass.
+     * Returns an empty list instead of null when nothing in the branch is selected.
+     */
+    private keepSelectedBranches(
+        asset: SpAsset,
+        selectedAssetIds: Set<string>,
+    ): SpAsset[] {
+        if (selectedAssetIds.has(asset.assetId)) {
+            return [asset];
+        }
+        const selectedSubAssets = (asset.assets ?? []).flatMap(subAsset =>
+            this.keepSelectedBranches(subAsset, selectedAssetIds),
+        );
+        if (selectedSubAssets.length === 0) {
+            return [];
+        }
+        return [{ ...asset, assetLinks: [], assets: selectedSubAssets }];
+    }
 
-        return {
-            selectedSites: this.refreshSelectedItems(
-                previousAssetData?.sites ?? [],
-                this.loadedAssetData.sites,
-                activeFilters.selectedSites,
-                site => site._id,
-            ),
-            selectedLabels: this.refreshSelectedItems(
-                previousAssetData?.labels ?? [],
-                this.loadedAssetData.labels,
-                activeFilters.selectedLabels,
-                label => label._id,
-            ),
-            selectedTypes: this.refreshSelectedItems(
-                previousTypes,
-                currentTypes,
-                activeFilters.selectedTypes,
-                type => type.type,
-            ),
-            selectedAssetModels: this.refreshSelectedItems(
-                previousAssetData?.assets ?? [],
-                this.loadedAssetData.assets,
-                activeFilters.selectedAssetModels,
+    /**
+     * Drops selections of assets deleted meanwhile, so the filter never points to missing assets.
+     */
+    private removeDeletedAssets(activeFilters: AssetFilter): AssetFilter {
+        const existingAssetIds = new Set(
+            this.listAllAssets(this.loadedAssetData.assets).map(
                 asset => asset.assetId,
+            ),
+        );
+        return {
+            selectedAssetIds: activeFilters.selectedAssetIds.filter(assetId =>
+                existingAssetIds.has(assetId),
             ),
         };
     }
 
-    private refreshSelectedItems<T, TId>(
-        previousItems: T[],
-        currentItems: T[],
-        selectedItems: T[],
-        getId: (item: T) => TId,
-    ): T[] {
-        const selectedIds = new Set(selectedItems.map(getId));
-        const allItemsSelected =
-            previousItems.length === selectedItems.length &&
-            previousItems.every(item => selectedIds.has(getId(item)));
-
-        return allItemsSelected
-            ? [...currentItems]
-            : currentItems.filter(item => selectedIds.has(getId(item)));
-    }
-
-    private allSelected(items: any[], selected: any[]) {
-        return items.length === selected.length;
-    }
-
-    private filterType(
-        asset: SpAsset,
-        selectedTypes: Isa95TypeDesc[],
-    ): SpAsset | null {
-        const matchesSelf = selectedTypes.some(
-            type => type.type === asset.assetType?.isa95AssetType,
-        );
-
-        if (!matchesSelf) {
-            // remove asset Links not of interest
-            asset.assetLinks = [];
-        }
-
-        if (!matchesSelf && !asset.assets?.length) {
-            // If the asset does not match the labels at the current level and recursion is not going to match either, return null
-            return null;
-        }
-
-        let filteredChildren: SpAsset[] = [];
-
-        if (asset.assets?.length) {
-            filteredChildren = asset.assets
-                .map(child => ({ ...child }))
-                .map(child => this.filterType(child, selectedTypes))
-                .filter(child => child !== null)
-                .map(child => child as SpAsset);
-        }
-
-        if (!matchesSelf && filteredChildren.length === 0) {
-            return null;
-        }
-        asset.assets = filteredChildren;
-
-        return asset;
-    }
-
-    private filterAssetModel(
-        asset: SpAsset,
-        selectedAssets: SpAsset[],
-    ): boolean {
-        return (
-            selectedAssets.find(a => a.assetId === asset.assetId) !== undefined
-        );
-    }
-
-    private filterSites(
-        asset: SpAsset,
-        selectedSites: AssetSiteDesc[],
-    ): boolean {
-        return (
-            selectedSites.find(site => asset.assetSite?.siteId === site._id) !==
-            undefined
-        );
-    }
-
-    private filterLabels(
-        asset: SpAsset,
-        selectedLabels: SpLabel[],
-        previousMatchesSelf: boolean = false,
-    ): SpAsset | null {
-        const labelIds = asset.labelIds || [];
-        const matchesSelf = selectedLabels.some(label =>
-            labelIds.includes(label._id),
-        );
-
-        if (matchesSelf) {
-            // If it already matches on top level --> labels are inherited
-            return asset;
-        }
-
-        if (!matchesSelf && !previousMatchesSelf) {
-            // remove asset Links not of interest
-            asset.assetLinks = [];
-        }
-
-        if (!matchesSelf && !asset.assets?.length) {
-            // If the asset does not match the labels at the current level and recursion is not going to match either, return null
-            return null;
-        }
-
-        let filteredChildren: SpAsset[] = [];
-
-        if (asset.assets?.length) {
-            filteredChildren = asset.assets
-                .map(child => ({ ...child }))
-                .map(child =>
-                    this.filterLabels(child, selectedLabels, matchesSelf),
-                )
-                .filter(child => child !== null)
-                .map(child => child as SpAsset);
-        }
-
-        if (
-            !matchesSelf &&
-            !previousMatchesSelf &&
-            filteredChildren.length === 0
-        ) {
-            return null;
-        }
-        asset.assets = filteredChildren;
-
-        return asset;
+    /**
+     * Lists every asset of the hierarchy, because sub assets are selectable too.
+     */
+    private listAllAssets(assets: SpAsset[]): SpAsset[] {
+        return assets.flatMap(asset => [
+            asset,
+            ...this.listAllAssets(asset.assets ?? []),
+        ]);
     }
 
     collectElementIds(

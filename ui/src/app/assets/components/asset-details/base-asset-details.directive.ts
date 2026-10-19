@@ -27,6 +27,7 @@ import {
     SpAssetModel,
 } from '@streampipes/platform-services';
 import { ActivatedRoute } from '@angular/router';
+import { AssetCreationService } from '../../services/asset-creation.service';
 import { of, zip } from 'rxjs';
 import { SpAssetRoutes } from '../../assets.breadcrumb';
 
@@ -41,6 +42,7 @@ export abstract class BaseAssetDetailsDirective implements OnInit {
     assetModelId: string;
     protected isNewAsset = false;
 
+    private assetCreationService = inject(AssetCreationService);
     private breadcrumbService = inject(SpBreadcrumbService);
     protected route = inject(ActivatedRoute);
     protected assetService = inject(AssetManagementService);
@@ -61,7 +63,7 @@ export abstract class BaseAssetDetailsDirective implements OnInit {
     }
 
     loadResources(): void {
-        const newAsset = this.getNewAssetFromNavigationState();
+        const newAsset = this.findNewAsset();
         const assetReq = newAsset
             ? of(newAsset)
             : this.assetService.getAsset(this.assetModelId);
@@ -108,6 +110,21 @@ export abstract class BaseAssetDetailsDirective implements OnInit {
     }
 
     abstract onAssetAvailable(): void;
+
+    /**
+     * Provides a new asset, either handed over by navigation or created for the create route.
+     */
+    private findNewAsset(): SpAssetModel | undefined {
+        const handedOverAsset = this.getNewAssetFromNavigationState();
+        if (handedOverAsset !== undefined) {
+            return handedOverAsset;
+        }
+        if (this.assetModelId === undefined) {
+            this.isNewAsset = true;
+            return this.assetCreationService.createDraft();
+        }
+        return undefined;
+    }
 
     private getNewAssetFromNavigationState(): SpAssetModel | undefined {
         const state = history.state as {

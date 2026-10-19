@@ -19,7 +19,6 @@
 import {
     AssetLinkType,
     AssetSiteDesc,
-    Isa95TypeDesc,
     SpAsset,
     SpLabel,
 } from '@streampipes/platform-services';
@@ -32,10 +31,15 @@ export interface AssetBrowserData {
 }
 
 export interface AssetFilter {
-    selectedSites: AssetSiteDesc[];
-    selectedTypes: Isa95TypeDesc[];
-    selectedLabels: SpLabel[];
-    selectedAssetModels: SpAsset[];
+    selectedAssetIds: string[];
+}
+
+export interface AssetFilterItem {
+    asset: SpAsset;
+    assetPath: string;
+    details: string;
+    dataCyId: string;
+    searchText: string;
 }
 
 export interface FilterResult {

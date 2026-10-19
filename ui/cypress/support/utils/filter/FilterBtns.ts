@@ -25,39 +25,25 @@ export class FilterBtns {
         return cy.dataCy('reset-filters-btn', { timeout: 10000 });
     }
 
-    public static filtersDeselectAssets() {
-        return cy.dataCy('filters-deselect-Assets', { timeout: 10000 });
+    public static searchInput() {
+        return cy.dataCy('asset-filter-search', { timeout: 10000 });
     }
 
-    public static filtersAssetSelect() {
-        return cy.dataCy('filters-asset-select', { timeout: 10000 });
+    public static addAllResultsBtn() {
+        return cy.dataCy('add-all-results-btn', { timeout: 10000 });
     }
 
-    public static filtersDeselectSites() {
-        return cy.dataCy('filters-deselect-Sites', { timeout: 10000 });
+    public static assetItem(assetName: string) {
+        return cy.dataCy(`asset-filter-item-${assetName}`, { timeout: 10000 });
     }
 
-    public static filtersSitesSelect() {
-        return cy.dataCy('filters-sites-select', { timeout: 10000 });
+    public static assetPreviewBtn(assetName: string) {
+        return cy.dataCy(`asset-filter-item-${assetName}-preview`, {
+            timeout: 10000,
+        });
     }
 
-    public static filtersDeselectLabels() {
-        return cy.dataCy('filters-deselect-Labels', { timeout: 10000 });
-    }
-
-    public static filtersLabelsSelect() {
-        return cy.dataCy('filters-labels-select', { timeout: 10000 });
-    }
-
-    public static filtersDeselectTypes() {
-        return cy.dataCy('filters-deselect-Type', { timeout: 10000 });
-    }
-
-    public static filtersTypesSelect() {
-        return cy.dataCy('filters-types-select', { timeout: 10000 });
-    }
-
-    public static applyFiltersBtn() {
-        return cy.dataCy('apply-filters-btn', { timeout: 10000 });
+    public static createAssetBtn() {
+        return cy.dataCy('create-asset-btn', { timeout: 10000 });
     }
 }

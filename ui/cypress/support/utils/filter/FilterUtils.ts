@@ -19,84 +19,67 @@
 import { FilterBtns } from './FilterBtns';
 
 export class FilterUtils {
-    private static openFilterMenu() {
-        FilterBtns.filterBtn().should('be.enabled').click();
-        FilterBtns.applyFiltersBtn().should('be.visible');
-    }
-
-    private static closeDropdownAndApplyFilters() {
-        cy.get('body').type('{esc}');
-        FilterBtns.applyFiltersBtn()
-            .should('be.visible')
-            .and('be.enabled')
-            .click();
-    }
-
     public static clearFilter() {
         this.openFilterMenu();
         FilterBtns.resetFiltersBtn().click();
     }
 
-    public static selectAssetFilter(name: string) {
-        cy.dataCy(`asset-option-${name}`).click();
-    }
-
-    public static selectSiteFilter(name: string) {
-        cy.dataCy(`site-option-${name}`).click();
-    }
-
-    public static selectLabelFilter(name: string) {
-        cy.dataCy(`label-option-${name}`).click();
-    }
-
-    public static selectTypeFilter(name: string) {
-        cy.dataCy(`type-option-${name}`).click();
-    }
-
     public static filterAssets(assetNames: string[]) {
         this.openFilterMenu();
-        FilterBtns.filtersDeselectAssets().click();
-        FilterBtns.filtersAssetSelect().click();
         assetNames.forEach(assetName => {
-            this.selectAssetFilter(assetName);
+            this.searchFor(assetName);
+            FilterBtns.assetItem(assetName).click();
         });
-
-        this.closeDropdownAndApplyFilters();
+        this.closeFilterMenu();
     }
 
     public static filterSites(siteNames: string[]) {
-        this.openFilterMenu();
-        FilterBtns.filtersDeselectSites().click();
-        FilterBtns.filtersSitesSelect().click();
-
-        siteNames.forEach(siteName => {
-            this.selectSiteFilter(siteName);
-        });
-
-        this.closeDropdownAndApplyFilters();
+        this.filterBySearchResults(siteNames);
     }
 
-    public static filterLabels(siteNames: string[]) {
-        this.openFilterMenu();
-        FilterBtns.filtersDeselectLabels().click();
-        FilterBtns.filtersLabelsSelect().click();
-
-        siteNames.forEach(siteName => {
-            this.selectLabelFilter(siteName);
-        });
-
-        this.closeDropdownAndApplyFilters();
+    public static filterLabels(labelNames: string[]) {
+        this.filterBySearchResults(labelNames);
     }
 
-    public static filterTypes(typeNames: string[]) {
+    public static filterTypes(typeLabels: string[]) {
+        this.filterBySearchResults(typeLabels);
+    }
+
+    public static openAssetPreview(assetName: string) {
         this.openFilterMenu();
-        FilterBtns.filtersDeselectTypes().click();
-        FilterBtns.filtersTypesSelect().click();
+        this.searchFor(assetName);
+        FilterBtns.assetPreviewBtn(assetName).click();
+    }
 
-        typeNames.forEach(siteName => {
-            this.selectTypeFilter(siteName);
+    public static createAssetInNewTab() {
+        this.openFilterMenu();
+        FilterBtns.createAssetBtn().click();
+        this.closeFilterMenu();
+    }
+
+    public static checkFilterMenuClosed() {
+        FilterBtns.searchInput().should('not.exist');
+    }
+
+    private static openFilterMenu() {
+        FilterBtns.filterBtn().should('be.enabled').click();
+        FilterBtns.searchInput().should('be.visible');
+    }
+
+    private static closeFilterMenu() {
+        FilterBtns.searchInput().type('{esc}');
+    }
+
+    private static searchFor(searchTerm: string) {
+        FilterBtns.searchInput().clear().type(searchTerm);
+    }
+
+    private static filterBySearchResults(searchTerms: string[]) {
+        this.openFilterMenu();
+        searchTerms.forEach(searchTerm => {
+            this.searchFor(searchTerm);
+            FilterBtns.addAllResultsBtn().click();
         });
-
-        this.closeDropdownAndApplyFilters();
+        this.closeFilterMenu();
     }
 }

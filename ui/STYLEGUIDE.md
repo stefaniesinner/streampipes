@@ -199,6 +199,27 @@ To render smaller inputs in a dense layout, assign the CSS class `form-field-sma
 
 You can also define an optional tooltip which is shown above the label.
 
+#### Search Field
+
+Use `sp-search-field` when users filter a list that is already on screen, such as the chart
+selection in dashboards or the asset filter in the toolbar. For picking items into a form
+value, use `sp-search-select` instead.
+
+The component owns the input state and reports the term after a short typing delay. Clearing
+is reported immediately, so an empty list never lingers. Reset it from the parent through
+`clearSearch()`.
+
+```html
+<sp-search-field
+  [placeholder]="'Search charts' | translate"
+  dataCy="chart-selection-search"
+  (searchTermChange)="setSearchTerm($event)"
+></sp-search-field>
+```
+
+Keep the filtering itself in the parent component: the field reports the term, the parent
+decides what the term means for its data.
+
 #### Search Select
 
 Use `sp-search-select` when users need to select one or more items from a searchable list, such as datasets, labels, sites, asset types, users, roles or groups.

@@ -22,6 +22,7 @@ import { ConnectUtils } from '../../support/utils/connect/ConnectUtils';
 import { PipelineUtils } from '../../support/utils/pipeline/PipelineUtils';
 import { DatasetUtils } from '../../support/utils/dataset/DatasetUtils';
 import { AssetUtils } from '../../support/utils/asset/AssetUtils';
+import { AssetBtns } from '../../support/utils/asset/AssetBtns';
 
 describe('Test asset filters', () => {
     const adapter1 = 'adapter-1_0';
@@ -109,16 +110,22 @@ describe('Test asset filters', () => {
             'dashboard-3_1',
             'dashboard-3_2',
         ]);
-        // Select type PRODUCTION_LINE
+        // Select type Production Line, which includes the work cells below
         FilterUtils.clearFilter();
-        FilterUtils.filterTypes(['PRODUCTION_LINE']);
+        FilterUtils.filterTypes(['Production Line']);
         DashboardUtils.checkInList([
             'dashboard-1_0',
+            'dashboard-1_1',
+            'dashboard-1_2',
             'dashboard-2_0',
+            'dashboard-2_1',
+            'dashboard-2_2',
             'dashboard-3_0',
+            'dashboard-3_1',
+            'dashboard-3_2',
         ]);
         FilterUtils.clearFilter();
-        FilterUtils.filterTypes(['WORK_CELL']);
+        FilterUtils.filterTypes(['Work Cell']);
         DashboardUtils.checkInList([
             'dashboard-1_1',
             'dashboard-1_2',
@@ -127,11 +134,9 @@ describe('Test asset filters', () => {
             'dashboard-3_1',
             'dashboard-3_2',
         ]);
-        // Select asset 1 & site 1 & label 2
+        // Select the sub asset asset-1_1 directly
         FilterUtils.clearFilter();
-        FilterUtils.filterAssets(['asset-1_0']);
-        FilterUtils.filterSites(['site1']);
-        FilterUtils.filterLabels(['label2']);
+        FilterUtils.filterAssets(['asset-1_1']);
         DashboardUtils.checkInList(['dashboard-1_1']);
 
         AssetUtils.goToAssets();
@@ -145,7 +150,7 @@ describe('Test asset filters', () => {
         AssetUtils.checkAmountOfAssets(3);
 
         FilterUtils.clearFilter();
-        FilterUtils.filterTypes(['PRODUCTION_LINE']);
+        FilterUtils.filterTypes(['Production Line']);
         AssetUtils.checkAmountOfAssets(3);
 
         FilterUtils.clearFilter();
@@ -214,7 +219,7 @@ describe('Test asset filters', () => {
         ]);
         //Select one type
         FilterUtils.clearFilter();
-        FilterUtils.filterTypes(['WORK_CELL']);
+        FilterUtils.filterTypes(['Work Cell']);
         checkTableResources('all-adapters-table', [
             adapter1_1,
             adapter1_2,
@@ -223,11 +228,9 @@ describe('Test asset filters', () => {
             adapter3_1,
             adapter3_2,
         ]);
-        // Select asset 1 & site 1 & label 2
+        // Select the sub asset asset-1_1 directly
         FilterUtils.clearFilter();
-        FilterUtils.filterAssets(['asset-1_0']);
-        FilterUtils.filterSites(['site1']);
-        FilterUtils.filterLabels(['label2']);
+        FilterUtils.filterAssets(['asset-1_1']);
         checkTableResources('all-adapters-table', [adapter1_1]);
     });
 
@@ -292,7 +295,7 @@ describe('Test asset filters', () => {
         ]);
         //select one type
         FilterUtils.clearFilter();
-        FilterUtils.filterTypes(['WORK_CELL']);
+        FilterUtils.filterTypes(['Work Cell']);
         checkTableResources('all-pipelines-table', [
             pipeline1_1,
             pipeline1_2,
@@ -301,11 +304,9 @@ describe('Test asset filters', () => {
             pipeline3_1,
             pipeline3_2,
         ]);
-        // Select asset 1 & site 1 & label 2
+        // Select the sub asset asset-1_1 directly
         FilterUtils.clearFilter();
-        FilterUtils.filterAssets(['asset-1_0']);
-        FilterUtils.filterSites(['site1']);
-        FilterUtils.filterLabels(['label2']);
+        FilterUtils.filterAssets(['asset-1_1']);
         checkTableResources('all-pipelines-table', [pipeline1_1]);
     });
 
@@ -370,7 +371,7 @@ describe('Test asset filters', () => {
         ]);
         //select one type
         FilterUtils.clearFilter();
-        FilterUtils.filterTypes(['WORK_CELL']);
+        FilterUtils.filterTypes(['Work Cell']);
         checkTableResources('datalake-settings', [
             adapter1_1,
             adapter1_2,
@@ -380,12 +381,37 @@ describe('Test asset filters', () => {
             adapter3_2,
         ]);
 
-        // Select asset 1 & site 1 & label 2
+        // Select the sub asset asset-1_1 directly
         FilterUtils.clearFilter();
-        FilterUtils.filterAssets(['asset-1_0']);
-        FilterUtils.filterSites(['site1']);
-        FilterUtils.filterLabels(['label2']);
+        FilterUtils.filterAssets(['asset-1_1']);
         checkTableResources('datalake-settings', [adapter1_1]);
+    });
+
+    it('Preview and create assets from the asset filter', () => {
+        DashboardUtils.goToDashboard();
+
+        // The preview summarizes a sub asset and links to its asset page
+        FilterUtils.openAssetPreview('asset-1_1');
+        AssetUtils.checkAssetPreview('asset-1_1', 'Work Cell');
+        AssetUtils.openAssetFromPreview();
+        cy.url().should('include', '/assets/details/');
+        cy.url().should('include', '/view');
+        FilterUtils.checkFilterMenuClosed();
+
+        // "+" opens the editor for a new asset in a new tab
+        cy.window().then(win => {
+            cy.stub(win, 'open').as('openWindow');
+        });
+        FilterUtils.createAssetInNewTab();
+        cy.get('@openWindow').should(
+            'have.been.calledWith',
+            '/#/assets/create',
+            '_blank',
+        );
+
+        // The create route itself opens the editor with a new asset
+        AssetUtils.goToNewAsset();
+        AssetBtns.assetNameInput().should('be.visible');
     });
 
     function checkTableResources(tableDataCy: string, resources: string[]) {

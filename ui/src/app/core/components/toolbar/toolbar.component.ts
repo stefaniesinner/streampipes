@@ -42,6 +42,8 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { MatIcon } from '@angular/material/icon';
 import { MatDivider } from '@angular/material/divider';
 import { TranslatePipe } from '@ngx-translate/core';
+import { UserPrivilege } from '../../auth/user-privilege.enum';
+import { AssetCreationService } from '../../../assets/services/asset-creation.service';
 import { SpSystemNotificationComponent } from '../system-notification/system-notification.component';
 
 @Component({
@@ -73,16 +75,22 @@ export class ToolbarComponent
     userEmail: string;
     darkMode: boolean;
 
+    canCreateAsset = false;
+
     appearanceControl: UntypedFormControl;
 
     private profileService = inject(ProfileService);
     private overlay = inject(OverlayContainer);
     private assetFilterService = inject(SpAssetBrowserService);
+    private assetCreationService = inject(AssetCreationService);
 
     ngOnInit(): void {
         this.assetFilterService.applyAssetLinkType('');
         this.currentUserService.user$.subscribe(user => {
             this.userEmail = user?.displayName || user?.username || '';
+            this.canCreateAsset = this.currentUserService.hasRole(
+                UserPrivilege.PRIVILEGE_WRITE_ASSETS,
+            );
             if (!user) {
                 return;
             }
@@ -103,6 +111,13 @@ export class ToolbarComponent
             this.modifyAppearance(darkMode);
         });
         super.onInit();
+    }
+
+    /**
+     * Opens a new asset from the asset filter in a new tab, so the current page stays as it is.
+     */
+    createAsset(): void {
+        this.assetCreationService.openNewAssetInNewTab();
     }
 
     modifyAppearance(darkMode: boolean) {

@@ -19,6 +19,16 @@
 import { Isa95Type } from '../../../../projects/streampipes/platform-services/src/lib/model/gen/streampipes-model';
 
 export class AssetBtns {
+    public static assetPreviewCard() {
+        return cy.dataCy('asset-feature-card', { timeout: 10000 });
+    }
+
+    public static assetPreviewDetailsBtn() {
+        return cy
+            .dataCy('asset-feature-card', { timeout: 10000 })
+            .contains('More details');
+    }
+
     public static createAssetBtn() {
         return cy.dataCy('create-new-asset-button', { timeout: 10000 });
     }

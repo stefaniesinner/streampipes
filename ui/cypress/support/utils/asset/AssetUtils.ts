@@ -83,6 +83,20 @@ export class AssetUtils {
         });
     }
 
+    public static checkAssetPreview(assetName: string, assetType: string) {
+        AssetBtns.assetPreviewCard()
+            .should('contain', assetName)
+            .and('contain', assetType);
+    }
+
+    public static openAssetFromPreview() {
+        AssetBtns.assetPreviewDetailsBtn().click();
+    }
+
+    public static goToNewAsset() {
+        cy.visit('#/assets/create');
+    }
+
     public static goToAssets() {
         cy.visit('#/assets/overview');
         cy.dataCy('asset-title').should('be.visible');

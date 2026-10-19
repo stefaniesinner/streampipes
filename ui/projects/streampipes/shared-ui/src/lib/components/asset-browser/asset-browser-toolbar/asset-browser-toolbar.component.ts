@@ -18,15 +18,20 @@
 
 import {
     Component,
+    EventEmitter,
     inject,
+    Input,
     OnDestroy,
     OnInit,
+    Output,
     ViewChild,
     ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationStart, Router } from '@angular/router';
 import { AssetBrowserData } from '../asset-browser.model';
 import { MatMenu, MatMenuTrigger } from '@angular/material/menu';
-import { Subscription } from 'rxjs';
+import { filter, Subscription } from 'rxjs';
 import { CurrentUserService } from '../../../services/current-user.service';
 import { SpAssetBrowserService } from '../asset-browser.service';
 import {
@@ -59,6 +64,13 @@ import { TranslatePipe } from '@ngx-translate/core';
 export class AssetBrowserToolbarComponent implements OnInit, OnDestroy {
     private currentUserService = inject(CurrentUserService);
     private assetBrowserService = inject(SpAssetBrowserService);
+    private router = inject(Router);
+
+    @Input()
+    canCreateAsset = false;
+
+    @Output()
+    createAsset: EventEmitter<void> = new EventEmitter();
 
     assetBrowserData: AssetBrowserData;
     showAssetBrowser = false;
@@ -70,6 +82,18 @@ export class AssetBrowserToolbarComponent implements OnInit, OnDestroy {
     allAssetCount = 0;
 
     @ViewChild('menuTrigger') menu: MatMenuTrigger;
+
+    /**
+     * Closes the filter menu on navigation, e.g. via "More details" in the asset preview.
+     */
+    constructor() {
+        this.router.events
+            .pipe(
+                filter(event => event instanceof NavigationStart),
+                takeUntilDestroyed(),
+            )
+            .subscribe(() => this.menu?.closeMenu());
+    }
 
     ngOnInit() {
         this.showAssetBrowser =

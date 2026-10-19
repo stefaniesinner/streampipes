@@ -48,6 +48,7 @@ export * from './lib/components/element-id/element-id.component';
 export * from './lib/components/form-field/form-field.component';
 export * from './lib/components/form-label/form-label.component';
 export * from './lib/components/property-scope-badge/property-scope-badge.component';
+export * from './lib/components/search-field/search-field.component';
 export * from './lib/components/search-select/search-select.component';
 export * from './lib/components/search-select/search-select-template.directive';
 export * from './lib/components/progress-bar/progress-bar.component';

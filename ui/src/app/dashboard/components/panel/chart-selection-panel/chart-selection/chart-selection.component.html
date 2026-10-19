@@ -72,30 +72,11 @@
             </div>
         </div>
 
-        <mat-form-field
-            appearance="outline"
-            subscriptSizing="dynamic"
-            class="chart-selection-search"
-        >
-            <mat-icon matPrefix>search</mat-icon>
-            <input
-                [placeholder]="'Search charts' | translate"
-                matInput
-                [formControl]="searchControl"
-                data-cy="chart-selection-search"
-            />
-            @if (hasActiveSearch) {
-                <button
-                    mat-icon-button
-                    matSuffix
-                    type="button"
-                    (click)="clearSearch()"
-                    [attr.aria-label]="'Clear search' | translate"
-                >
-                    <mat-icon>close</mat-icon>
-                </button>
-            }
-        </mat-form-field>
+        <sp-search-field
+            [placeholder]="'Search charts' | translate"
+            dataCy="chart-selection-search"
+            (searchTermChange)="setSearchTerm($event)"
+        ></sp-search-field>
     </div>
 
     @if (isRefreshing) {

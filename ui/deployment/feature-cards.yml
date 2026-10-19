@@ -33,3 +33,7 @@
   componentPath: './connect/components/connect-feature-card/connect-feature-card.component'
   componentName: ConnectFeatureCardComponent
   moduleName: spConnect
+- id: asset
+  componentPath: './assets/components/asset-feature-card/asset-feature-card.component'
+  componentName: AssetFeatureCardComponent
+  moduleName: spAssets

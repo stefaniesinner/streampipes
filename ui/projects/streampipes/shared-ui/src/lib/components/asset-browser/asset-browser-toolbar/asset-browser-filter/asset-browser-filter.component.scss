@@ -16,45 +16,38 @@
  *
  */
 
-.menu-content {
-    padding: 10px;
-    min-width: 550px;
+.asset-filter-shell {
+    box-sizing: border-box;
+    width: 30rem;
+    max-width: 100%;
+    padding: var(--space-sm) var(--space-md);
 }
 
-.filter-header {
-    font-weight: bold;
-    white-space: nowrap;
+.asset-filter-caption {
+    font-size: var(--font-size-sm);
+    color: var(--mat-sys-on-surface-variant);
 }
 
-.filter-section {
-    padding: 5px 10px 5px 5px;
-    border: 1px solid var(--color-bg-3);
-    background: var(--color-bg-1);
+.asset-filter-results {
+    max-height: 26rem;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
-.smaller-font-size {
-    font-size: smaller;
+.asset-filter-empty {
+    min-height: 10rem;
+    text-align: center;
 }
 
-.filter-selection {
-    min-width: 300px;
+.asset-filter-empty-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 2rem;
+    color: var(--mat-sys-on-surface-variant);
 }
 
-.fs-icon {
-    font-size: 16px;
-}
-
-.active-filters {
-    border-radius: 50%;
-    background: var(--color-secondary);
-    color: var(--color-primary);
-    width: 20px;
-    height: 20px;
-    line-height: 20px;
-    font-weight: bold;
-}
-
-.empty {
-    background: var(--color-bg-2);
-    color: var(--color-bg-3);
+.asset-filter-hint {
+    font-size: var(--font-size-md);
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant);
 }

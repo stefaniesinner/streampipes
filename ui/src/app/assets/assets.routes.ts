@@ -38,6 +38,15 @@ export const ASSET_ROUTES: Routes = [
                 component: SpAssetOverviewComponent,
             },
             {
+                path: 'create',
+                component: SpAssetDetailsComponent,
+                data: {
+                    privileges: [UserPrivilege.PRIVILEGE_WRITE_ASSETS],
+                },
+                canActivate: [PageAuthGuard],
+                canDeactivate: [ChartPanelCanDeactivateGuard],
+            },
+            {
                 path: 'details/:assetId/view',
                 component: SpViewAssetComponent,
             },

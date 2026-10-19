@@ -16,57 +16,127 @@
 ~
 -->
 
-@if (activeFilters) {
-    <div class="menu-content" (click)="$event.stopPropagation()">
-        <div fxLayout="column" fxLayoutGap="10px">
-            <sp-asset-browser-filter-asset-model
-                [assets]="assetBrowserData.assets"
-                [activeFilters]="activeFilters"
+<div
+    class="asset-filter-shell"
+    fxLayout="column"
+    fxLayoutGap="var(--space-md)"
+    (click)="$event.stopPropagation()"
+    (keydown)="keepKeysInSearchField($event)"
+>
+    <div
+        fxLayout="row"
+        fxLayoutAlign="space-between center"
+        fxLayoutGap="var(--space-md)"
+    >
+        <span class="asset-filter-caption">
+            {{ filteredAssetItems.length }}
+            @if (filteredAssetItems.length === 1) {
+                {{ 'asset available' | translate }}
+            } @else {
+                {{ 'assets available' | translate }}
+            }
+        </span>
+        <div
+            fxLayout="row"
+            fxLayoutAlign="end center"
+            fxLayoutGap="var(--space-xs)"
+        >
+            <button
+                mat-icon-button
+                type="button"
+                data-cy="refresh-assets-btn"
+                [matTooltip]="'Refresh assets' | translate"
+                (click)="refreshAssets()"
             >
-            </sp-asset-browser-filter-asset-model>
-            <sp-asset-browser-filter-type [activeFilters]="activeFilters">
-            </sp-asset-browser-filter-type>
-            <sp-asset-browser-filter-sites
-                [sites]="assetBrowserData.sites"
-                [activeFilters]="activeFilters"
-            >
-            </sp-asset-browser-filter-sites>
-            <sp-asset-browser-filter-labels
-                [labels]="assetBrowserData.labels"
-                [activeFilters]="activeFilters"
-            >
-            </sp-asset-browser-filter-labels>
-            <mat-divider></mat-divider>
-            <div fxLayout="row" fxLayoutAlign="space-between center">
+                <mat-icon>refresh</mat-icon>
+            </button>
+            @if (canCreateAsset) {
                 <button
                     mat-icon-button
-                    data-cy="refresh-assets-btn"
-                    matTooltip="{{ 'Refresh assets' | translate }}"
-                    matTooltipPosition="below"
-                    color="accent"
-                    (click)="refreshAssets()"
+                    type="button"
+                    data-cy="create-asset-btn"
+                    [matTooltip]="'Create asset in new tab' | translate"
+                    (click)="createNewAsset()"
                 >
-                    <mat-icon> refresh </mat-icon>
+                    <mat-icon>add</mat-icon>
                 </button>
-                <div fxLayout="row" fxLayoutGap="10px">
-                    <button
-                        data-cy="reset-filters-btn"
-                        mat-flat-button
-                        class="mat-basic"
-                        (click)="resetFilters()"
-                    >
-                        {{ 'Reset filters' | translate }}
-                    </button>
-                    <button
-                        data-cy="apply-filters-btn"
-                        mat-flat-button
-                        color="accent"
-                        (click)="applyFilters()"
-                    >
-                        {{ 'Apply' | translate }}
-                    </button>
-                </div>
-            </div>
+            }
         </div>
     </div>
-}
+
+    <sp-search-field
+        [placeholder]="'Search assets' | translate"
+        dataCy="asset-filter-search"
+        (searchTermChange)="setSearchTerm($event)"
+    ></sp-search-field>
+
+    <div
+        fxLayout="row"
+        fxLayoutAlign="space-between center"
+        fxLayoutGap="var(--space-sm)"
+    >
+        <span class="asset-filter-caption">
+            {{ selectedAssetIds.size }} {{ 'selected' | translate }}
+        </span>
+        <div fxLayout="row" fxLayoutGap="var(--space-sm)">
+            @if (hasActiveSearch()) {
+                <button
+                    mat-button
+                    type="button"
+                    data-cy="add-all-results-btn"
+                    [disabled]="!hasUnselectedResults()"
+                    (click)="addAllResults()"
+                >
+                    {{ 'Add all results' | translate }}
+                </button>
+            }
+            <button
+                mat-flat-button
+                type="button"
+                class="mat-basic"
+                data-cy="reset-filters-btn"
+                (click)="resetFilters()"
+            >
+                {{ 'Reset filters' | translate }}
+            </button>
+        </div>
+    </div>
+
+    @if (assetItems.length === 0) {
+        <span class="asset-filter-hint">{{
+            'No assets available' | translate
+        }}</span>
+    } @else if (filteredAssetItems.length === 0) {
+        <div
+            fxLayout="column"
+            fxLayoutAlign="center center"
+            fxLayoutGap="var(--space-sm)"
+            class="asset-filter-empty"
+        >
+            <mat-icon class="asset-filter-empty-icon">search_off</mat-icon>
+            <span class="asset-filter-hint">{{
+                'No assets match your search.' | translate
+            }}</span>
+            <button mat-button type="button" (click)="clearSearch()">
+                {{ 'Clear search' | translate }}
+            </button>
+        </div>
+    } @else {
+        <div
+            fxLayout="column"
+            fxLayoutGap="var(--space-xs)"
+            class="asset-filter-results"
+        >
+            @for (
+                assetItem of filteredAssetItems;
+                track assetItem.asset.assetId
+            ) {
+                <sp-asset-browser-filter-item
+                    [assetItem]="assetItem"
+                    [selected]="isSelected(assetItem)"
+                    (toggleAssetEmitter)="toggleAsset(assetItem)"
+                ></sp-asset-browser-filter-item>
+            }
+        </div>
+    }
+</div>

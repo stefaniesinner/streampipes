@@ -57,6 +57,7 @@ import { moveAssetToParent } from '../../utils/move-asset';
 import { SpAssetRoutes } from '../../assets.breadcrumb';
 import { Router } from '@angular/router';
 import { IdGeneratorService } from '../../../core-services/id-generator/id-generator.service';
+import { AssetCreationService } from '../../services/asset-creation.service';
 import { UserPrivilege } from '../../../core/auth/user-privilege.enum';
 import { MatDialog } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
@@ -116,6 +117,7 @@ export class SpAssetOverviewComponent implements OnInit, OnDestroy {
     private dialogService = inject(DialogService);
     private router = inject(Router);
     private idGeneratorService = inject(IdGeneratorService);
+    private assetCreationService = inject(AssetCreationService);
     private assetBrowserService = inject(SpAssetBrowserService);
     private currentUserService = inject(CurrentUserService);
     private dialog = inject(MatDialog);
@@ -226,31 +228,11 @@ export class SpAssetOverviewComponent implements OnInit, OnDestroy {
         return '-';
     }
 
+    /**
+     * Opens the editor for a new asset, shared with the asset filter in the toolbar.
+     */
     createNewAsset() {
-        const assetModel: SpAssetModel = {
-            assetName: 'New Asset',
-            assetDescription: '',
-            assetLinks: [],
-            assetId: this.idGeneratorService.generate(6),
-            elementId: this.idGeneratorService.generate(24),
-            appDocType: 'asset-management',
-            removable: true,
-            rev: undefined,
-            assets: [],
-            assetType: undefined,
-            assetSite: undefined,
-            additionalData: {},
-            labelIds: [],
-        };
-        this.router.navigate(
-            ['assets', 'details', assetModel.elementId, 'edit'],
-            {
-                state: {
-                    assetModel,
-                    isNewAsset: true,
-                },
-            },
-        );
+        this.assetCreationService.navigateToNewAsset();
     }
 
     createFromExisting(asset: AssetSummaryDto): void {

@@ -43,7 +43,9 @@
         <mat-menu #menu="matMenu" fxFlex="100" class="large-menu">
             <sp-asset-browser-filter
                 (closeMenu)="closeMenu()"
+                (createAsset)="createAsset.emit()"
                 [assetBrowserData]="assetBrowserData"
+                [canCreateAsset]="canCreateAsset"
             >
             </sp-asset-browser-filter>
         </mat-menu>
